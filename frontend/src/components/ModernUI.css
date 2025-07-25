@@ -1,0 +1,113 @@
+.modern-bg {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1b183a 0%, #2a0845 100%);
+}
+
+.glass-card {
+  background: rgba(34, 34, 68, 0.75);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  border-radius: 24px;
+  padding: 40px 32px;
+  max-width: 460px;
+  width: 100%;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  text-align: center;
+}
+
+.modern-btn {
+  background: linear-gradient(90deg, #c084fc 0%, #6ee7b7 100%);
+  color: #1b183a;
+  font-weight: bold;
+  border: none;
+  border-radius: 32px;
+  padding: 14px 32px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 12px #c084fc55;
+  transition: background 0.2s, transform 0.2s;
+  margin-top: 18px;
+}
+.modern-btn:hover {
+  background: linear-gradient(90deg, #6ee7b7 0%, #c084fc 100%);
+  transform: scale(1.05);
+}
+
+.modern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.modern-logo {
+  font-size: 1.7rem;
+  font-weight: bold;
+  color: #c084fc;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px #c084fc44;
+}
+
+.modern-link {
+  color: #fff;
+  background: rgba(192,132,252,0.15);
+  padding: 8px 18px;
+  border-radius: 22px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+.modern-link:hover {
+  background: #c084fc;
+  color: #1b183a;
+}
+
+.modern-main {
+  margin-top: 1.5rem;
+}
+
+.app-title-navbar {
+  font-weight: 900;
+  font-size: 2.7rem;
+  color: #a78bfa;
+  letter-spacing: 2px;
+  text-shadow: 0 4px 16px #a78bfa66;
+}
+
+.modern-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  margin-bottom: 0.8rem;
+  color: #fff;
+  text-shadow: 0 0 10px #c084fc44;
+}
+
+.modern-desc {
+  font-size: 1.1rem;
+  color: #d1c4e9;
+  margin-bottom: 1.5rem;
+}
+
+.modern-features {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+  gap: 20px;
+}
+.modern-feature {
+  background: rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 18px 12px;
+  flex: 1;
+  color: #fff;
+  box-shadow: 0 2px 8px #c084fc22;
+  transition: background 0.2s, transform 0.2s;
+}
+.modern-feature:hover {
+  background: rgba(255,255,255,0.18);
+  transform: translateY(-4px) scale(1.04);
+}

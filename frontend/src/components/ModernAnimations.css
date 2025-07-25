@@ -1,0 +1,41 @@
+.fade-in {
+  animation: fadeIn 1.2s cubic-bezier(0.39, 0.575, 0.565, 1) both;
+}
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
+
+.slide-up {
+  animation: slideUp 0.9s cubic-bezier(0.39, 0.575, 0.565, 1) both;
+}
+@keyframes slideUp {
+  0% { opacity: 0; transform: translateY(60px); }
+  100% { opacity: 1; transform: none; }
+}
+
+.glow-animate {
+  animation: glowPulse 2.5s ease-in-out infinite alternate;
+}
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 16px 2px #c084fc44, 0 0 0 0 #fff0; }
+  100% { box-shadow: 0 0 32px 10px #c084fc88, 0 0 0 0 #fff0; }
+}
+
+.bounce-in {
+  animation: bounceIn 1.1s cubic-bezier(.8,-0.6,0.2,1.5) both;
+}
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.7); }
+  60% { opacity: 1; transform: scale(1.1); }
+  80% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.modern-btn {
+  transition: background 0.2s, transform 0.2s, box-shadow 0.3s;
+}
+.modern-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 12px #c084fc99;
+}

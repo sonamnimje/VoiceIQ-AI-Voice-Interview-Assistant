@@ -1,0 +1,133 @@
+/* Wireframe.css: Simple wireframe look for all pages */
+.wireframe-container {
+  display: flex;
+  min-height: 100vh;
+  background: #fafbfc;
+  font-family: Arial, sans-serif;
+}
+.wireframe-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 2px dashed #bbb;
+  background: #fff;
+}
+.wireframe-main {
+  flex: 1;
+  padding: 40px;
+}
+.wireframe-desc {
+  color: #888;
+  margin-bottom: 32px;
+}
+.wireframe-btn {
+  background: #e3e7ee;
+  border: 2px dashed #bbb;
+  padding: 12px 28px;
+  font-size: 1rem;
+  margin-bottom: 32px;
+  cursor: pointer;
+}
+.wireframe-features {
+  display: flex;
+  gap: 32px;
+  margin-top: 32px;
+}
+.wireframe-features > div {
+  border: 2px dashed #bbb;
+  padding: 16px 24px;
+  min-width: 160px;
+  background: #fff;
+}
+.wireframe-sidebar {
+  min-width: 180px;
+  background: #f5f6fa;
+  border-right: 2px dashed #bbb;
+  padding: 32px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100vh;
+}
+.wireframe-nav-selected {
+  background: #e3e7ee;
+  border-left: 4px solid #1a73e8;
+  padding-left: 12px;
+  font-weight: bold;
+}
+.wireframe-login-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.wireframe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 320px;
+  margin-top: 24px;
+}
+.wireframe-input {
+  padding: 10px;
+  border: 2px dashed #bbb;
+  background: #fff;
+}
+.wireframe-form-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+.wireframe-interview-main {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  padding: 40px;
+}
+.wireframe-card {
+  border: 2px dashed #bbb;
+  background: #fff;
+  padding: 24px;
+  min-height: 120px;
+  margin-bottom: 16px;
+}
+.wireframe-mic-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 2rem;
+}
+.wireframe-avatar {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+.wireframe-placeholder {
+  height: 40px;
+  background: #f0f0f0;
+  margin-top: 12px;
+}
+.wireframe-profile-main {
+  padding: 40px;
+}
+.wireframe-transcript-list {
+  border: 2px dashed #bbb;
+  background: #fff;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+.wireframe-transcript-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.wireframe-transcript-time {
+  min-width: 50px;
+  font-weight: bold;
+}
+.wireframe-transcript-qa {
+  flex: 1;
+}
