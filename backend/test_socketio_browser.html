@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Browser Test</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .disconnected { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .error { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .log { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; height: 200px; overflow-y: auto; font-family: monospace; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Socket.IO Browser Connection Test</h1>
+    
+    <div id="status" class="status disconnected">Connecting...</div>
+    
+    <div>
+        <button onclick="testConnection()">Test Connection</button>
+        <button onclick="sendTestMessage()">Send Test Message</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <h3>Connection Log:</h3>
+    <div id="log" class="log"></div>
+
+    <script>
+        let socket = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(status, className) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = status;
+            statusDiv.className = `status ${className}`;
+        }
+        
+        function testConnection() {
+            log('Attempting to connect to Socket.IO server...');
+            
+            try {
+                // Clean up existing connection
+                if (socket) {
+                    socket.disconnect();
+                }
+                
+                socket = io('http://localhost:8000', {
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    forceNew: true
+                });
+                
+                socket.on('connect', () => {
+                    log('✅ Connected to server');
+                    log(`Socket ID: ${socket.id}`);
+                    updateStatus('Connected', 'connected');
+                });
+                
+                socket.on('disconnect', (reason) => {
+                    log(`🔌 Disconnected: ${reason}`);
+                    updateStatus('Disconnected', 'disconnected');
+                });
+                
+                socket.on('connect_error', (error) => {
+                    log(`❌ Connection error: ${error.message}`);
+                    updateStatus('Connection Error', 'error');
+                });
+                
+                socket.on('test_response', (data) => {
+                    log(`✅ Test response received: ${JSON.stringify(data)}`);
+                });
+                
+                socket.on('voice_result', (data) => {
+                    log(`🎤 Voice result received: ${JSON.stringify(data)}`);
+                });
+                
+                socket.on('error', (error) => {
+                    log(`❌ Socket error: ${error}`);
+                });
+                
+            } catch (error) {
+                log(`❌ Error creating socket: ${error.message}`);
+                updateStatus('Error', 'error');
+            }
+        }
+        
+        function sendTestMessage() {
+            if (socket && socket.connected) {
+                log('📤 Sending test message...');
+                socket.emit('test', { message: 'Hello from browser test!' });
+            } else {
+                log('❌ Socket not connected. Please connect first.');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Auto-connect on page load
+        window.onload = function() {
+            log('Page loaded. Starting connection test...');
+            testConnection();
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .error { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>Simple Socket.IO Test</h1>
+    <div id="status" class="status disconnected">Connecting...</div>
+    <div id="log"></div>
+
+    <script>
+        const socket = io('http://localhost:8000', {
+            transports: ['websocket', 'polling'],
+            timeout: 20000,
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
+            forceNew: true,
+            withCredentials: false,
+            upgrade: true,
+            rememberUpgrade: true
+        });
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            console.log(message);
+        }
+
+        function updateStatus(status, className) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = status;
+            statusDiv.className = `status ${className}`;
+        }
+
+        socket.on('connect', () => {
+            log('✅ Connected to server');
+            log(`Socket ID: ${socket.id}`);
+            updateStatus('Connected', 'connected');
+        });
+
+        socket.on('disconnect', (reason) => {
+            log(`🔌 Disconnected: ${reason}`);
+            updateStatus('Disconnected', 'disconnected');
+        });
+
+        socket.on('connect_error', (error) => {
+            log(`❌ Connection error: ${error.message}`);
+            log(`Error type: ${error.type}`);
+            log(`Error description: ${error.description}`);
+            updateStatus('Connection Error', 'error');
+        });
+
+        socket.on('test_response', (data) => {
+            log(`✅ Test response: ${JSON.stringify(data)}`);
+        });
+
+        // Send test message after connection
+        socket.on('connect', () => {
+            setTimeout(() => {
+                log('📤 Sending test message...');
+                socket.emit('test', { message: 'Hello from simple test!' });
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

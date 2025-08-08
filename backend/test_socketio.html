@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .connected { background: #4ade80; color: black; }
+        .disconnected { background: #f87171; }
+        .error { background: #fbbf24; color: black; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        #log {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Socket.IO Connection Test</h1>
+    
+    <div id="status" class="status disconnected">Disconnected</div>
+    
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="sendTestMessage()">Send Test Message</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <h3>Connection Log:</h3>
+    <div id="log"></div>
+
+    <script>
+        let socket = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(status, className) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = status;
+            statusDiv.className = `status ${className}`;
+        }
+        
+        function testConnection() {
+            log('Attempting to connect to Socket.IO server...');
+            
+            try {
+                socket = io('http://localhost:8000', {
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000
+                });
+                
+                socket.on('connect', () => {
+                    log('✅ Connected to server');
+                    updateStatus('Connected', 'connected');
+                });
+                
+                socket.on('disconnect', (reason) => {
+                    log(`🔌 Disconnected: ${reason}`);
+                    updateStatus('Disconnected', 'disconnected');
+                });
+                
+                socket.on('connect_error', (error) => {
+                    log(`❌ Connection error: ${error.message}`);
+                    updateStatus('Connection Error', 'error');
+                });
+                
+                socket.on('voice_result', (data) => {
+                    log(`🎤 Received voice result: ${JSON.stringify(data)}`);
+                });
+                
+                socket.on('error', (error) => {
+                    log(`❌ Socket error: ${error}`);
+                });
+                
+            } catch (error) {
+                log(`❌ Failed to create socket: ${error.message}`);
+                updateStatus('Failed to Connect', 'error');
+            }
+        }
+        
+        function sendTestMessage() {
+            if (!socket || !socket.connected) {
+                log('❌ Not connected to server');
+                return;
+            }
+            
+            const testData = {
+                type: 'voice',
+                audio_data: 'dGVzdCBkYXRh', // base64 encoded "test data"
+                session_id: 'test_session_' + Date.now(),
+                role: 'Software Engineer',
+                timestamp: Date.now()
+            };
+            
+            log('📤 Sending test message...');
+            socket.emit('voice', testData);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Auto-test connection on page load
+        window.onload = () => {
+            log('Page loaded, testing connection...');
+            testConnection();
+        };
+    </script>
+</body>
+</html> 

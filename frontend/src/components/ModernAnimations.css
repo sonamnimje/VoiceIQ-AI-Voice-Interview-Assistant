@@ -34,8 +34,18 @@
 
 .modern-btn {
   transition: background 0.2s, transform 0.2s, box-shadow 0.3s;
+  animation: subtleGlow 3s ease-in-out infinite alternate;
 }
 .modern-btn:active {
   transform: scale(0.97);
   box-shadow: 0 2px 12px #c084fc99;
+}
+
+@keyframes subtleGlow {
+  0% {
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(192, 132, 252, 0.2);
+  }
+  100% {
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.5), 0 0 0 1px rgba(192, 132, 252, 0.3), 0 0 20px rgba(192, 132, 252, 0.2);
+  }
 }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test Client</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Test Client</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Type a message">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        const socket = io('http://127.0.0.1:8000', {
+            transports: ['websocket', 'polling'],
+            timeout: 10000,
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            forceNew: true
+        });
+
+        socket.on('connect', () => {
+            document.getElementById('status').innerHTML = 'Connected!';
+            console.log('Connected to server');
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('status').innerHTML = 'Disconnected';
+            console.log('Disconnected from server');
+        });
+
+        socket.on('connect_error', (error) => {
+            document.getElementById('status').innerHTML = 'Connection failed: ' + error.message;
+            console.error('Connection error:', error);
+        });
+
+        socket.on('message', (data) => {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += '<p>' + data.data + '</p>';
+            console.log('Received message:', data);
+        });
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value;
+            if (message) {
+                socket.emit('message', message);
+                input.value = '';
+            }
+        }
+    </script>
+</body>
+</html> 

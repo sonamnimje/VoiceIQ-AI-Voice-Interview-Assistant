@@ -1,0 +1,468 @@
+/* Audio Test Debug Component Styles */
+.audio-test-debug {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 20px;
+  padding: 30px;
+  color: white;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  margin: 20px 0;
+  font-family: 'Courier New', monospace;
+}
+
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.debug-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.debug-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.debug-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.debug-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.debug-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.debug-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.debug-panel h3 {
+  margin: 0 0 20px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #60a5fa;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.logs-panel {
+  grid-column: 1 / -1;
+}
+
+.errors-panel {
+  grid-column: 1 / -1;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.errors-panel h3 {
+  color: #f87171;
+}
+
+/* Device Information */
+.device-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-item label {
+  font-weight: 600;
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+
+.info-item span {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.permission-granted {
+  color: #10b981;
+}
+
+.permission-denied {
+  color: #ef4444;
+}
+
+.permission-prompt {
+  color: #fbbf24;
+}
+
+.permission-unknown {
+  color: #6b7280;
+}
+
+.device-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.action-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.3);
+}
+
+.device-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.device-selector label {
+  font-weight: 600;
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+
+.device-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.device-select option {
+  background: #1e293b;
+  color: white;
+}
+
+/* Audio Testing */
+.test-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.test-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.test-btn.start {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.test-btn.stop {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.test-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+}
+
+.test-btn:disabled {
+  background: #6b7280;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.audio-visualizer {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+}
+
+.audio-bar {
+  width: 100%;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  overflow: hidden;
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.audio-level {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #fbbf24, #ef4444);
+  border-radius: 13px;
+  transition: width 0.1s ease;
+  position: relative;
+}
+
+.audio-level::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.audio-stats {
+  display: flex;
+  gap: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+/* Logs */
+.logs-container {
+  max-height: 300px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.no-logs {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  margin: 20px 0;
+}
+
+.log-entry {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.log-info {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+}
+
+.log-warning {
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 3px solid #fbbf24;
+}
+
+.log-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid #ef4444;
+}
+
+.log-timestamp {
+  color: #6b7280;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.log-message {
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+}
+
+/* Errors */
+.errors-container {
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.error-entry {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.2);
+  border-left: 3px solid #ef4444;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.error-timestamp {
+  color: #f87171;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.error-message {
+  color: #fecaca;
+  flex: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .audio-test-debug {
+    padding: 20px;
+    margin: 10px 0;
+  }
+  
+  .debug-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .debug-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .debug-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .device-actions {
+    flex-direction: column;
+  }
+  
+  .audio-stats {
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
+  }
+  
+  .logs-container,
+  .errors-container {
+    max-height: 200px;
+  }
+}
+
+/* Scrollbar Styling */
+.logs-container::-webkit-scrollbar,
+.errors-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.logs-container::-webkit-scrollbar-track,
+.errors-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.logs-container::-webkit-scrollbar-thumb,
+.errors-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.logs-container::-webkit-scrollbar-thumb:hover,
+.errors-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Animation for new elements */
+.debug-panel {
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus states for accessibility */
+.debug-btn:focus,
+.action-btn:focus,
+.test-btn:focus,
+.device-select:focus {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+}
+
+/* Loading states */
+.test-btn:disabled {
+  position: relative;
+}
+
+.test-btn:disabled::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid transparent;
+  border-top: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 

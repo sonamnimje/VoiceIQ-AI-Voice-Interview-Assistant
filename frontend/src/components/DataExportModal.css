@@ -1,0 +1,353 @@
+.data-export-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  padding: 20px;
+}
+
+.data-export-modal-container {
+  max-width: 600px;
+  width: 100%;
+  padding: 32px;
+  position: relative;
+  animation: slideIn 0.3s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.data-export-modal-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #c084fc;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.data-export-modal-close-btn:hover {
+  background-color: rgba(192, 132, 252, 0.1);
+}
+
+.data-export-modal-header-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c084fc 0%, #6ee7b7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 2rem;
+  color: #1b183a;
+  font-weight: bold;
+  box-shadow: 0 8px 32px rgba(192, 132, 252, 0.3);
+}
+
+.data-export-modal-title {
+  color: #c084fc;
+  margin: 0 0 8px 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.data-export-modal-subtitle {
+  color: #d1c4e9;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.data-export-section {
+  margin-bottom: 32px;
+}
+
+.data-export-section-title {
+  color: #ffffff;
+  margin: 0 0 20px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.data-export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.data-export-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(192,132,252,0.2);
+  background: rgba(255,255,255,0.05);
+  transition: all 0.3s ease;
+}
+
+.data-export-option:hover {
+  border-color: rgba(192,132,252,0.4);
+  background: rgba(255,255,255,0.08);
+}
+
+.data-export-checkbox {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.data-export-checkbox input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.data-export-checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(192,132,252,0.5);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.05);
+  transition: all 0.3s ease;
+}
+
+.data-export-checkbox input:checked ~ .data-export-checkmark {
+  background: linear-gradient(135deg, #c084fc 0%, #6ee7b7 100%);
+  border-color: transparent;
+}
+
+.data-export-checkbox input:checked ~ .data-export-checkmark:after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.data-export-option-content {
+  flex: 1;
+}
+
+.data-export-option-title {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.data-export-option-details {
+  color: #a3a3a3;
+  font-size: 0.9rem;
+}
+
+.data-export-format-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.data-export-format-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(192,132,252,0.2);
+  background: rgba(255,255,255,0.05);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.data-export-format-option:hover {
+  border-color: rgba(192,132,252,0.4);
+  background: rgba(255,255,255,0.08);
+}
+
+.data-export-format-option input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.data-export-format-checkmark {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(192,132,252,0.5);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  transition: all 0.3s ease;
+}
+
+.data-export-format-option input:checked ~ .data-export-format-checkmark {
+  background: linear-gradient(135deg, #c084fc 0%, #6ee7b7 100%);
+  border-color: transparent;
+}
+
+.data-export-format-option input:checked ~ .data-export-format-checkmark:after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+}
+
+.data-export-format-content {
+  flex: 1;
+}
+
+.data-export-format-title {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.data-export-format-description {
+  color: #a3a3a3;
+  font-size: 0.9rem;
+}
+
+.data-export-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(192,132,252,0.1);
+  border: 1px solid rgba(192,132,252,0.2);
+}
+
+.data-export-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.data-export-summary-label {
+  color: #d1c4e9;
+  font-size: 0.9rem;
+}
+
+.data-export-summary-value {
+  color: #c084fc;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.data-export-modal-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.data-export-modal-cancel-btn {
+  flex: 1;
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(192,132,252,0.3);
+  background: rgba(255,255,255,0.05);
+  color: #d1c4e9;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.data-export-modal-cancel-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.data-export-modal-submit-btn {
+  flex: 1;
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(90deg, #c084fc 0%, #6ee7b7 100%);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 1;
+}
+
+.data-export-modal-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(192, 132, 252, 0.3);
+}
+
+.data-export-modal-submit-btn:disabled {
+  background: linear-gradient(90deg, #6b7280 0%, #6b728080 100%);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .data-export-modal-container {
+    padding: 24px;
+    margin: 10px;
+    max-height: 95vh;
+  }
+  
+  .data-export-modal-actions {
+    flex-direction: column;
+  }
+  
+  .data-export-modal-title {
+    font-size: 1.5rem;
+  }
+  
+  .data-export-summary {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .data-export-option,
+  .data-export-format-option {
+    padding: 12px;
+  }
+} 

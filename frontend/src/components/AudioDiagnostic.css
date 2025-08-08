@@ -1,0 +1,392 @@
+/* Audio Diagnostic Component Styles */
+.audio-diagnostic {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 15px;
+  padding: 25px;
+  color: white;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  margin: 20px 0;
+  font-family: 'Courier New', monospace;
+}
+
+.diagnostic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.diagnostic-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.diagnostic-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.clear-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clear-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.diagnostic-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.diagnostic-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.diagnostic-panel h4 {
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #60a5fa;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+
+.logs-panel {
+  grid-column: 1 / -1;
+}
+
+/* Status Items */
+.status-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-item label {
+  font-weight: 600;
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+
+.status-item span {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.permission-granted {
+  color: #10b981;
+}
+
+.permission-denied {
+  color: #ef4444;
+}
+
+.permission-prompt {
+  color: #fbbf24;
+}
+
+.permission-unknown {
+  color: #6b7280;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.action-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Device Selector */
+.device-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.device-selector label {
+  font-weight: 600;
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+
+.device-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.device-select option {
+  background: #1e293b;
+  color: white;
+}
+
+/* Test Controls */
+.test-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.test-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.test-btn.start {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.test-btn.stop {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.test-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Audio Visualizer */
+.audio-visualizer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.audio-bar {
+  width: 100%;
+  height: 25px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.audio-level {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #fbbf24, #ef4444);
+  border-radius: 10px;
+  transition: width 0.1s ease;
+  position: relative;
+}
+
+.audio-level::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.audio-info {
+  display: flex;
+  gap: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+/* Logs */
+.logs-container {
+  max-height: 250px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.no-logs {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  margin: 20px 0;
+}
+
+.log-entry {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.log-info {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 2px solid #3b82f6;
+}
+
+.log-warning {
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 2px solid #fbbf24;
+}
+
+.log-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 2px solid #ef4444;
+}
+
+.log-timestamp {
+  color: #6b7280;
+  font-weight: 600;
+  min-width: 70px;
+}
+
+.log-message {
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .audio-diagnostic {
+    padding: 20px;
+    margin: 10px 0;
+  }
+  
+  .diagnostic-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .diagnostic-header h3 {
+    font-size: 1.3rem;
+  }
+  
+  .diagnostic-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .audio-info {
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
+  }
+  
+  .logs-container {
+    max-height: 200px;
+  }
+}
+
+/* Scrollbar Styling */
+.logs-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.logs-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.logs-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.logs-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Animation */
+.diagnostic-panel {
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus states for accessibility */
+.clear-btn:focus,
+.action-btn:focus,
+.test-btn:focus,
+.device-select:focus {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+} 
