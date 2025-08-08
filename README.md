@@ -49,7 +49,7 @@ VoiceIQ is an advanced AI-powered interview preparation platform that provides r
 1. **Clone the repository**
    ```bash
    git clone https://github.com/sonamnimje/VoiceIQ-AI-Voice-Interview-Assistant.git
-   cd VoiceIQ
+   cd VoiceIQ-AI-Voice-Interview-Assistant
    ```
 
 2. **Set up the backend**
@@ -114,83 +114,6 @@ SECRET_KEY=your_secret_key
 We welcome contributions! Please follow these steps:
 1. Fork the repository
 2. Create a new branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-- OpenAI for their powerful language models
-- The open-source community for various libraries and tools
-   ```bash
-   # Terminal 1 - Backend
-   cd backend
-   python run_server.py
-   
-   # Terminal 2 - Frontend
-   cd frontend
-   npm run start:localhost
-   ```
-
-   **For Network Access:**
-   ```bash
-   # Terminal 1 - Backend
-   cd backend
-   python start_server.py
-   
-   # Terminal 2 - Frontend
-   cd frontend
-   npm run start:network
-   ```
-
-5. **Access the Application**
-   - **Localhost**: http://localhost:3000 (Frontend) / http://localhost:8000 (Backend)
-   - **Network**: http://192.168.29.164:3000 (Frontend) / http://192.168.29.164:8000 (Backend)
-
-```
-
-### API Endpoints
-- `GET /api/dashboard/stats/{email}`: Enhanced dashboard statistics
-- `GET /api/interview/history/{email}`: Interview history
-- `GET /api/profile`: User profile information
-- `POST /api/interview/start`: Start new interview session
-- `POST /api/feedback/save`: Save interview feedback
-
-## 🎨 UI/UX Features
-
-### Modern Design
-- **Glassmorphism**: Translucent card effects with backdrop blur
-- **Gradient Backgrounds**: Dynamic color schemes
-- **Smooth Animations**: CSS transitions and keyframe animations
-- **Responsive Layout**: Adaptive design for all screen sizes
-
-### Interactive Elements
-- **Hover Effects**: Enhanced user feedback
-- **Loading States**: Smooth loading animations
-- **Toast Notifications**: User-friendly feedback messages
-- **Modal Dialogs**: Contextual information display
-
-## 📈 Performance Metrics
-
-### Dashboard Analytics
-- **Interview Completion Rate**: Percentage of completed sessions
-- **Average Score Trends**: Performance over time
-- **Skill Breakdown**: Detailed competency analysis
-- **Improvement Tracking**: Progress visualization
-
-### Real-time Features
-- **Live Updates**: Instant data synchronization
-- **WebSocket Communication**: Efficient real-time messaging
-- **Voice Processing**: Low-latency audio analysis
-- **Responsive UI**: Smooth user interactions
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
