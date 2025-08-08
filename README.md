@@ -1,103 +1,130 @@
-# AI Voice Interview Assistant
+# 🎙️ VoiceIQ - AI Voice Interview Assistant
 
-A comprehensive AI-powered interview preparation platform that provides real-time voice interaction, intelligent feedback, and personalized coaching to help users excel in their interviews.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Node.js 14+](https://img.shields.io/badge/Node.js-14+-green.svg)](https://nodejs.org/)
 
-## 🚀 Features
+VoiceIQ is an advanced AI-powered interview preparation platform that provides real-time voice interaction, intelligent feedback, and personalized coaching to help users excel in their interviews. Whether you're preparing for technical, behavioral, or case interviews, VoiceIQ offers a realistic practice environment with detailed analytics to track your progress.
 
-### Enhanced Dashboard
-- **Real-time Statistics**: Live dashboard with interview completion stats, average scores, and improvement trends
-- **Dynamic Recent Activity**: Shows actual interview history with timestamps and performance metrics
-- **Performance Insights**: Detailed breakdown of communication, technical, problem-solving, and confidence scores
-- **Achievement System**: Gamified progress tracking with unlockable achievements
-- **Interactive Elements**: Hover effects, animations, and modern UI components
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
+## ✨ Key Features
 
-### Core Features
-- **Voice-Enabled Interviews**: Real-time voice interaction with AI interviewer
-- **AI-Powered Feedback**: Comprehensive analysis of responses with actionable insights
-- **Multiple Interview Modes**: Technical, behavioral, and custom interview scenarios
-- **Resume Integration**: Upload and analyze resumes for personalized questions
-- **Progress Tracking**: Detailed analytics and performance metrics
-- **Practice Sessions**: Dedicated practice mode for skill improvement
+### 🎤 Real-time Voice Interaction
+- Natural conversation flow with AI interviewer
+- Voice-to-text transcription with high accuracy
+- Support for multiple languages and accents
 
-## 🛠️ Technology Stack
+### 📊 Comprehensive Analytics
+- Detailed performance metrics across multiple dimensions
+- Progress tracking and trend analysis
+- Personalized feedback and improvement suggestions
 
-### Frontend
-- **React.js**: Modern UI framework with hooks and functional components
-- **React Router**: Client-side routing for seamless navigation
-- **Socket.IO**: Real-time communication for voice processing
-- **CSS3**: Advanced styling with gradients, animations, and responsive design
-- **React Icons**: Comprehensive icon library for enhanced UX
+### 🎯 Interview Modes
+- **Technical Interviews**: Coding challenges and system design
+- **Behavioral Interviews**: STAR method and situational questions
+- **Custom Interviews**: Tailor questions to specific roles or companies
 
-### Backend
-- **FastAPI**: High-performance Python web framework
-- **SQLite**: Lightweight database for data persistence
-- **Socket.IO**: Real-time bidirectional communication
-- **OpenAI API**: Advanced language model integration
-- **Speech Recognition**: Voice-to-text processing capabilities
+### 🛠️ Technical Features
+- **Resume Parser**: Extract skills and experience for personalized questions
+- **Practice Mode**: Repeat questions and refine your answers
+- **Session Recording**: Review your performance anytime
+- **Mobile Responsive**: Practice on any device
 
-## 📊 Dashboard Features
-
-### Statistics Overview
-- **Interview Count**: Total and completed interviews
-- **Average Scores**: Overall performance metrics
-- **Last Interview**: Recent activity tracking
-- **Improvement Trends**: Performance progression over time
-
-### Recent Activity Feed
-- **Real-time Updates**: Live interview history
-- **Performance Metrics**: Score tracking for each session
-- **Time Stamps**: Relative time display (e.g., "2 hours ago")
-- **Status Indicators**: Visual cues for different activity types
-
-### Performance Insights
-- **Communication Skills**: Clarity and articulation metrics
-- **Technical Knowledge**: Domain-specific expertise scoring
-- **Problem Solving**: Analytical thinking assessment
-- **Confidence Level**: Self-assurance and presentation skills
-
-### Achievement System
-- **Progressive Unlocking**: Achievements based on milestones
-- **Visual Feedback**: Color-coded unlocked/locked states
-- **Progress Tracking**: Achievement completion percentages
-- **Motivational Elements**: Encouraging user engagement
-
-## 🎯 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js (v14 or higher)
 - Python (v3.8 or higher)
 - FFmpeg (for audio processing)
 
-### Quick Start Options
+### Installation
 
-#### Option 1: Windows Batch Scripts (Easiest)
-- **Localhost Development**: Double-click `start_localhost.bat`
-- **Network Access**: Double-click `start_network.bat`
+#### Option 1: Using Batch Scripts (Windows)
+1. Download the repository
+2. Run the appropriate batch file:
+   - `start_localhost.bat` - For local development
+   - `start_network.bat` - For network access
 
 #### Option 2: Manual Setup
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd AI-voice-interview-assistant
+   git clone https://github.com/sonamnimje/VoiceIQ-AI-Voice-Interview-Assistant.git
+   cd VoiceIQ
    ```
 
-2. **Backend Setup**
+2. **Set up the backend**
    ```bash
    cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: .\venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
-3. **Frontend Setup**
+3. **Set up the frontend**
    ```bash
-   cd frontend
+   cd ../frontend
    npm install
    ```
 
-4. **Start Servers**
+4. **Start the application**
+   - In one terminal (backend):
+     ```bash
+     cd backend
+     uvicorn main:app --reload
+     ```
+   - In another terminal (frontend):
+     ```bash
+     cd frontend
+     npm start
+     ```
 
-   **For Localhost Development:**
+5. Open your browser and navigate to `http://localhost:3000`
+
+## 🛠️ Technology Stack
+
+### Frontend
+- **React.js** - Modern UI with functional components and hooks
+- **Redux** - State management
+- **Socket.IO** - Real-time communication
+- **Tailwind CSS** - Utility-first CSS framework
+- **React Icons** - Comprehensive icon library
+
+### Backend
+- **FastAPI** - High-performance Python web framework
+- **SQLAlchemy** - ORM for database operations
+- **WebSockets** - Real-time bidirectional communication
+- **OpenAI API** - Natural language processing
+- **FFmpeg** - Audio processing
+
+## 📚 Documentation
+
+### API Reference
+Detailed API documentation is available at `/docs` when running the backend server.
+
+### Environment Variables
+Create a `.env` file in the backend directory with the following variables:
+```
+OPENAI_API_KEY=your_openai_api_key
+DATABASE_URL=sqlite:///./voiceiq.db
+SECRET_KEY=your_secret_key
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+- OpenAI for their powerful language models
+- The open-source community for various libraries and tools
    ```bash
    # Terminal 1 - Backend
    cd backend
@@ -123,36 +150,6 @@ A comprehensive AI-powered interview preparation platform that provides real-tim
    - **Localhost**: http://localhost:3000 (Frontend) / http://localhost:8000 (Backend)
    - **Network**: http://192.168.29.164:3000 (Frontend) / http://192.168.29.164:8000 (Backend)
 
-📖 **For detailed instructions, see [STARTUP_GUIDE.md](STARTUP_GUIDE.md)**
-
-## 📱 Usage
-
-### Dashboard Navigation
-1. **Login/Register**: Create an account or sign in
-2. **View Statistics**: Check your interview performance metrics
-3. **Start Interview**: Begin a new interview session
-4. **Review Activity**: Monitor recent interview history
-5. **Track Progress**: View achievements and improvement trends
-
-### Interview Process
-1. **Select Mode**: Choose interview type (technical, behavioral, etc.)
-2. **Voice Interaction**: Speak naturally with the AI interviewer
-3. **Real-time Feedback**: Receive instant performance analysis
-4. **Review Results**: Access detailed feedback and suggestions
-5. **Practice Improvement**: Use insights to enhance skills
-
-## 🔧 Configuration
-
-### Environment Variables
-```bash
-# Backend (.env)
-OPENAI_API_KEY=your_openai_api_key
-DATABASE_URL=sqlite:///database.db
-PORT=8000
-
-# Frontend (.env)
-REACT_APP_API_URL=http://localhost:8000
-REACT_APP_SOCKET_URL=http://localhost:8000
 ```
 
 ### API Endpoints
