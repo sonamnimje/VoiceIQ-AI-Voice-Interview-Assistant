@@ -1,7 +1,8 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException, Body, UploadFile, File, Form
+from fastapi import FastAPI, Request, HTTPException, Body, UploadFile, File, Form, status
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Response
+from fastapi.websockets import WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 import asyncio
 import json
@@ -12,7 +13,9 @@ import logging
 import sqlite3
 import csv
 import socketio
-from typing import List, Dict, Any
+import uvicorn
+from typing import List, Dict, Any, Optional
+from voice_processor import get_or_create_session, InterviewSession
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,23 +24,35 @@ logger = logging.getLogger(__name__)
 # Import existing modules
 from db_utils import (
     init_db, add_user, save_dashboard_stats, update_user_profile,
-    get_dashboard_stats, save_feedback, get_feedback, save_transcript, get_transcripts,
+    get_dashboard_stats, save_transcript, get_transcripts,
     change_user_password, get_user_language, update_user_language, clear_transcripts,
     # New enhanced functions
     start_interview_session, end_interview_session, add_interview_question, save_user_response,
-    save_transcript_enhanced, save_feedback_enhanced, get_feedback_enhanced, get_interview_session, get_user_interview_history,
+    save_transcript_enhanced, get_interview_session, get_user_interview_history,
     get_dashboard_stats_enhanced, save_interview_analytics, update_dashboard_stats_after_interview
 )
 
 # Import new advanced features
 from voice_processor import get_or_create_session as get_voice_session
-
+from resume_processor import ResumeProcessor
 from llm_feedback import feedback_engine
-from resume_processor import resume_processor
-from interview_modes import interview_mode_manager, InterviewMode
+from ai_interview_analyzer import ai_analyzer, AnalysisType
 
-# Import feedback routes
-from feedback_routes import router as feedback_router
+# Remove feedback imports
+# from llm_feedback import feedback_engine
+# Remove feedback router import and inclusion
+# from feedback_routes import router as feedback_router
+# app.include_router(feedback_router)
+
+# Remove feedback functions from db_utils import
+from db_utils import (
+    init_db, add_user, save_dashboard_stats, update_user_profile,
+    get_dashboard_stats, save_transcript, get_transcripts,
+    change_user_password, get_user_language, update_user_language, clear_transcripts,
+    start_interview_session, end_interview_session, add_interview_question, save_user_response,
+    save_transcript_enhanced, get_interview_session, get_user_interview_history,
+    get_dashboard_stats_enhanced, save_interview_analytics, update_dashboard_stats_after_interview
+)
 
 def map_interview_mode(frontend_mode: str) -> str:
     """Map frontend interview mode names to backend mode names"""
@@ -54,20 +69,29 @@ def map_interview_mode(frontend_mode: str) -> str:
     }
     return mode_mapping.get(frontend_mode, "hr")  # Default to HR mode
 
+# Initialize FastAPI app
 app = FastAPI()
+
+# Initialize Socket.IO
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins=["*"]
+)
+
+# Wrap the FastAPI app with Socket.IO
+socket_app = socketio.ASGIApp(sio, app)
 
 # Allow CORS for local frontend dev
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
 
-# Include feedback routes
-app.include_router(feedback_router)
+# Store active WebSocket connections
+active_connections: Dict[str, WebSocket] = {}
 
 # Create Socket.IO server
 sio = socketio.AsyncServer(
@@ -90,12 +114,15 @@ socket_app = socketio.ASGIApp(sio, app)
 from db_utils import init_db
 import os
 
-# Initialize database and show connection info
+# Import configuration first to set up paths
+from config import DATABASE_PATH
+
+# Initialize database
 init_db()
-db_path = os.path.abspath("database.db")
-print(f"🚀 Backend started!")
-print(f"📁 Database connected to: {db_path}")
-print(f"✅ Database exists: {os.path.exists(db_path)}")
+
+print(f"Backend started!")
+print(f"Database file: {DATABASE_PATH}")
+print(f"Database exists: {os.path.exists(DATABASE_PATH)}")
 
 @app.get("/")
 def root():
@@ -270,6 +297,63 @@ async def get_profile(user_or_email: str):
 ROLE_QUESTIONS = {
     "Software Engineer": [
         "What is a REST API?",
+        "Explain the difference between SQL and NoSQL databases.",
+        "What is the difference between process and thread?",
+        "How does garbage collection work in Python/Java?",
+        "What is the difference between HTTP and HTTPS?"
+    ],
+    "Data Scientist": [
+        "What is the difference between supervised and unsupervised learning?",
+        "How do you handle missing data in a dataset?",
+        "Explain the bias-variance tradeoff.",
+        "What is cross-validation and why is it important?",
+        "How would you evaluate a machine learning model?"
+    ],
+    "Product Manager": [
+        "How do you prioritize features in a product roadmap?",
+        "What metrics would you track to measure the success of a new feature?",
+        "How do you handle disagreements between engineering and design teams?",
+        "What's your approach to gathering customer requirements?",
+        "How do you decide when to build a feature in-house vs using a third-party solution?"
+    ]
+}
+
+@app.post("/api/interview/generate-question")
+async def generate_question(request: Request):
+    """Generate a random interview question based on role"""
+    try:
+        data = await request.json()
+        role = data.get("role", "Software Engineer")  # Default to Software Engineer
+        
+        # Get questions for the specified role, or use all questions if role not found
+        questions = ROLE_QUESTIONS.get(role, [])
+        if not questions:
+            # If role not found, use all questions
+            all_questions = [q for qs in ROLE_QUESTIONS.values() for q in qs]
+            questions = all_questions or ["Tell me about yourself."]  # Fallback question
+        
+        # Select a random question
+        import random
+        question = random.choice(questions)
+        
+        return {
+            "success": True,
+            "question": question,
+            "role": role,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating question: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "Failed to generate question"}
+        )
+
+# Simple question banks for each role
+ROLE_QUESTIONS = {
+    "Software Engineer": [
+        "What is a REST API?",
         "Explain the concept of OOP.",
         "How do you handle version control?",
         "Describe a challenging bug you fixed.",
@@ -334,74 +418,6 @@ async def api_get_dashboard_stats(email: str):
         "interviewsCompleted": 0,
         "avgFeedbackScore": 0,
         "lastInterviewDate": "No interviews yet"
-    }
-
-
-
-@app.get("/api/feedback/interactions")
-async def api_get_feedback_interactions(email: str):
-    """Get feedback interactions with /api/ prefix for frontend compatibility"""
-    # Try to get enhanced feedback first, fallback to old feedback
-    feedback = get_feedback_enhanced(email)
-    
-    if feedback:
-        import json
-        # Parse JSON fields if present
-        try:
-            if feedback.get("categories"):
-                feedback["categories"] = json.loads(feedback["categories"]) if isinstance(feedback["categories"], str) else feedback["categories"]
-            if feedback.get("suggestions"):
-                feedback["suggestions"] = json.loads(feedback["suggestions"]) if isinstance(feedback["suggestions"], str) else feedback["suggestions"]
-            if feedback.get("transcript"):
-                parsed_transcript = json.loads(feedback["transcript"]) if isinstance(feedback["transcript"], str) else feedback["transcript"]
-                # Ensure transcript is an array, if not, convert to array format
-                if not isinstance(parsed_transcript, list):
-                    feedback["transcript"] = [{"time": "00:00", "text": str(parsed_transcript), "tag": "general"}]
-                else:
-                    feedback["transcript"] = parsed_transcript
-        except Exception as e:
-            # If JSON parsing fails, provide fallback structure
-            if feedback.get("transcript"):
-                feedback["transcript"] = [{"time": "00:00", "text": str(feedback["transcript"]), "tag": "general"}]
-            else:
-                feedback["transcript"] = []
-        
-        # Convert to the format expected by the frontend
-        interactions = []
-        if feedback.get("transcript"):
-            for i, item in enumerate(feedback["transcript"]):
-                if isinstance(item, dict):
-                    interaction = {
-                        "timestamp": item.get("time", f"00:{i:02d}"),
-                        "speaker": "ai" if "ai" in str(item.get("text", "")).lower() else "user",
-                        "text": item.get("text", ""),
-                        "interactionType": "question" if "ai" in str(item.get("text", "")).lower() else "voice-answer",
-                        "confidence": 0.85,
-                        "responseTime": 2.0
-                    }
-                    interactions.append(interaction)
-        
-        session_info = {
-            "role": "Software Engineer",  # Default role
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "duration": "5:00",
-            "totalQuestions": len([i for i in interactions if i["speaker"] == "ai"])
-        }
-        
-        return {
-            "interactions": interactions,
-            "session_info": session_info
-        }
-    
-    # Return default feedback if none exists
-    return {
-        "interactions": [],
-        "session_info": {
-            "role": "Software Engineer",
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "duration": "0:00",
-            "totalQuestions": 0
-        }
     }
 
 
@@ -796,6 +812,180 @@ async def get_comprehensive_feedback(request: Request):
         logger.error(f"Error generating comprehensive feedback: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
+@app.post("/api/ai/interview-analysis")
+async def analyze_interview_session(request: Request):
+    """Comprehensive AI interview analysis with multiple analysis types"""
+    try:
+        data = await request.json()
+        session_data = data.get("session_data", {})
+        analysis_type = data.get("analysis_type", "post_interview")
+        
+        if not session_data:
+            return JSONResponse({"error": "Missing session data"}, status_code=400)
+        
+        # Map analysis type string to enum
+        analysis_enum = AnalysisType.POST_INTERVIEW
+        if analysis_type == "real_time":
+            analysis_enum = AnalysisType.REAL_TIME
+        elif analysis_type == "skill_assessment":
+            analysis_enum = AnalysisType.SKILL_ASSESSMENT
+        elif analysis_type == "career_development":
+            analysis_enum = AnalysisType.CAREER_DEVELOPMENT
+        
+        # Generate AI analysis
+        analysis = await ai_analyzer.analyze_interview_session(session_data, analysis_enum)
+        
+        return analysis
+        
+    except Exception as e:
+        logger.error(f"Error in AI interview analysis: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/ai/real-time-feedback")
+async def get_real_time_feedback(request: Request):
+    """Get real-time feedback during interview"""
+    try:
+        data = await request.json()
+        session_data = data.get("session_data", {})
+        
+        if not session_data:
+            return JSONResponse({"error": "Missing session data"}, status_code=400)
+        
+        # Generate real-time feedback
+        feedback = await ai_analyzer.analyze_interview_session(
+            session_data, 
+            AnalysisType.REAL_TIME
+        )
+        
+        return feedback
+        
+    except Exception as e:
+        logger.error(f"Error generating real-time feedback: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/ai/skill-assessment")
+async def get_skill_assessment(request: Request):
+    """Get detailed skill gap analysis and development plan"""
+    try:
+        data = await request.json()
+        session_data = data.get("session_data", {})
+        
+        if not session_data:
+            return JSONResponse({"error": "Missing session data"}, status_code=400)
+        
+        # Generate skill assessment
+        assessment = await ai_analyzer.analyze_interview_session(
+            session_data, 
+            AnalysisType.SKILL_ASSESSMENT
+        )
+        
+        return assessment
+        
+    except Exception as e:
+        logger.error(f"Error generating skill assessment: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/ai/career-development")
+async def get_career_development_analysis(request: Request):
+    """Get career development analysis and strategic advice"""
+    try:
+        data = await request.json()
+        session_data = data.get("session_data", {})
+        
+        if not session_data:
+            return JSONResponse({"error": "Missing session data"}, status_code=400)
+        
+        # Generate career development analysis
+        analysis = await ai_analyzer.analyze_interview_session(
+            session_data, 
+            AnalysisType.CAREER_DEVELOPMENT
+        )
+        
+        return analysis
+        
+    except Exception as e:
+        logger.error(f"Error generating career development analysis: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/ai/quick-analysis")
+async def get_quick_analysis(request: Request):
+    """Get quick analysis for immediate feedback"""
+    try:
+        data = await request.json()
+        question = data.get("question", "")
+        answer = data.get("answer", "")
+        role = data.get("role", "Software Engineer")
+        context = data.get("context", {})
+        
+        if not question or not answer:
+            return JSONResponse({"error": "Missing question or answer"}, status_code=400)
+        
+        # Create minimal session data for quick analysis
+        session_data = {
+            "role": role,
+            "responses": [{"question": question, "answer": answer}],
+            "context": context
+        }
+        
+        # Generate quick analysis
+        analysis = await ai_analyzer.analyze_interview_session(
+            session_data, 
+            AnalysisType.REAL_TIME
+        )
+        
+        return analysis
+        
+    except Exception as e:
+        logger.error(f"Error generating quick analysis: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/ai/batch-analysis")
+async def batch_analyze_interviews(request: Request):
+    """Analyze multiple interview sessions in batch"""
+    try:
+        data = await request.json()
+        sessions = data.get("sessions", [])
+        analysis_type = data.get("analysis_type", "post_interview")
+        
+        if not sessions or not isinstance(sessions, list):
+            return JSONResponse({"error": "Invalid sessions data"}, status_code=400)
+        
+        # Map analysis type
+        analysis_enum = AnalysisType.POST_INTERVIEW
+        if analysis_type == "skill_assessment":
+            analysis_enum = AnalysisType.SKILL_ASSESSMENT
+        elif analysis_type == "career_development":
+            analysis_enum = AnalysisType.CAREER_DEVELOPMENT
+        
+        # Process each session
+        results = []
+        for session in sessions:
+            try:
+                analysis = await ai_analyzer.analyze_interview_session(session, analysis_enum)
+                results.append({
+                    "session_id": session.get("session_id", "unknown"),
+                    "success": True,
+                    "analysis": analysis
+                })
+            except Exception as e:
+                results.append({
+                    "session_id": session.get("session_id", "unknown"),
+                    "success": False,
+                    "error": str(e)
+                })
+        
+        return {
+            "success": True,
+            "total_sessions": len(sessions),
+            "successful_analyses": len([r for r in results if r["success"]]),
+            "failed_analyses": len([r for r in results if not r["success"]]),
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in batch analysis: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 @app.post("/api/resume/upload")
 async def upload_and_process_resume(
     file: UploadFile = File(...),
@@ -823,24 +1013,49 @@ async def upload_and_process_resume(
             temp_file_path = temp_file.name
         
         try:
-            # Process resume
+            # Process resume using the ResumeProcessor instance
             logger.info(f"Processing resume file: {temp_file_path}")
-            result = resume_processor.process_resume(temp_file_path)
+            
+            # Create an instance of ResumeProcessor
+            processor = ResumeProcessor()
+            
+            # Process the resume
+            result = processor.process_resume(temp_file_path)
             
             if result["success"]:
                 # Match skills to role
-                skill_match = resume_processor.match_skills_to_role(
+                skill_match = processor.match_skills_to_role(
                     result["extracted_info"], role
                 )
-                
-                logger.info(f"Resume processed successfully. Skills found: {len(result['extracted_info'].get('skills', {}))}")
-                
+
+                # Calculate aggregate counts for convenience on the frontend
+                skills_total_count = sum(
+                    len(v) for v in result["extracted_info"].get("skills", {}).values()
+                )
+                skills_category_count = len(
+                    [
+                        1
+                        for v in result["extracted_info"].get("skills", {}).values()
+                        if len(v) > 0
+                    ]
+                )
+                experience_positions_count = len(
+                    result["extracted_info"].get("experience", [])
+                )
+
+                logger.info(
+                    f"Resume processed successfully. Skills found: {skills_total_count} (across {skills_category_count} categories)"
+                )
+
                 return {
                     "success": True,
                     "analysis": {
                         "extracted_info": result["extracted_info"],
-                        "skill_match": skill_match
-                    }
+                        "skill_match": skill_match,
+                        "skills_total_count": skills_total_count,
+                        "skills_category_count": skills_category_count,
+                        "experience_positions_count": experience_positions_count,
+                    },
                 }
             else:
                 logger.error(f"Resume processing failed: {result.get('error')}")
@@ -999,8 +1214,22 @@ async def suggest_questions(request: Request):
         logger.error(f"Error suggesting questions: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
-# Note: WebSocket functionality is now handled by Socket.IO
-# The FastAPI WebSocket endpoint has been removed to avoid conflicts
+# WebSocket connection handler
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    await websocket.accept()
+    active_connections[client_id] = websocket
+    logger.info(f"New WebSocket connection: {client_id}")
+    
+    try:
+        while True:
+            data = await websocket.receive_text()
+            logger.info(f"Received from {client_id}: {data}")
+            await websocket.send_text(f"Echo: {data}")
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected: {client_id}")
+        if client_id in active_connections:
+            del active_connections[client_id]
 
 # Socket.IO event handlers for voice interview
 @sio.event
@@ -1048,49 +1277,43 @@ async def voice(sid, data):
         
         # Process voice data
         try:
-            voice_session = get_voice_session(session_id, role)
+            # Get or create voice session
+            voice_session = get_or_create_session(session_id, role)
+            
+            # Process the audio data
             result = await voice_session.process_interview_audio(audio_bytes, asyncio.get_event_loop().time())
             
             logger.info(f"Voice processing result: {result}")
             
-            # Send results back to client
-            await sio.emit('voice_result', {
-                'transcript': result.get('transcript'),
-                'audio_quality': result.get('audio_quality')
-            }, room=sid)
+            # Prepare response data
+            response_data = {}
+            if result.get('transcript'):
+                response_data['transcript'] = result['transcript']
+            if result.get('audio_quality'):
+                response_data['audio_quality'] = result['audio_quality']
             
+            # Send results back to client
+            await sio.emit('voice_result', response_data, room=sid)
             logger.info("Voice result sent to client")
             
         except Exception as e:
-            logger.error(f"Error in voice processing: {e}")
-            await sio.emit('error', {'message': f'Voice processing error: {str(e)}'}, room=sid)
+            logger.error(f"Error in voice processing: {str(e)}", exc_info=True)
+            await sio.emit('error', {
+                'message': 'Error processing voice data',
+                'details': str(e)
+            }, room=sid)
         
     except Exception as e:
-        logger.error(f"Error processing voice data: {e}")
-        await sio.emit('error', {'message': str(e)}, room=sid)
-
-@sio.event
-async def feedback(sid, data):
-    """Handle feedback request from client"""
-    try:
-        question = data.get("question")
-        answer = data.get("answer")
-        role = data.get("role", "Software Engineer")
-        
-        if not question or not answer:
-            await sio.emit('error', {'message': 'Missing question or answer'}, room=sid)
-            return
-        
-        # Get feedback from LLM
-        feedback_result = await feedback_engine.analyze_interview_response(question, answer, role)
-        
-        await sio.emit('feedback_result', {
-            'feedback': feedback_result
+        logger.error(f"Error processing voice data: {str(e)}", exc_info=True)
+        await sio.emit('error', {
+            'message': 'Failed to process voice data',
+            'details': str(e)
         }, room=sid)
-        
-    except Exception as e:
-        logger.error(f"Error processing feedback request: {e}")
-        await sio.emit('error', {'message': str(e)}, room=sid)
+
+# Remove feedback event
+# @sio.event
+# async def feedback(sid, data):
+#     ...
 
 # New API endpoints for enhanced interview functionality
 
@@ -1106,12 +1329,25 @@ async def start_interview(request: Request):
         if not user_email or not role:
             return JSONResponse({"error": "Missing userEmail or role"}, status_code=400)
         
+        # Start a new interview session
         session_id = start_interview_session(user_email, role, interview_mode)
+        
+        if not session_id:
+            return JSONResponse({"error": "Failed to create interview session"}, status_code=500)
+            
+        logger.info(f"Started new interview session: {session_id} for user: {user_email}, role: {role}")
         
         return {
             "success": True,
             "sessionId": session_id,
-            "message": "Interview session started successfully"
+            "message": "Interview session started successfully",
+            "sessionData": {
+                "userEmail": user_email,
+                "role": role,
+                "interviewMode": interview_mode,
+                "startTime": datetime.now().isoformat(),
+                "status": "active"
+            }
         }
     except Exception as e:
         logger.error(f"Error starting interview: {str(e)}")
@@ -1437,320 +1673,6 @@ async def save_transcript_api(request: Request):
         
     except Exception as e:
         logger.error(f"Error saving transcript: {str(e)}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.post("/api/feedback/save")
-async def save_feedback_api(request: Request):
-    """Save comprehensive feedback data with detailed analysis"""
-    try:
-        data = await request.json()
-        session_id = data.get("sessionId")
-        user_email = data.get("userEmail")
-        overall_score = data.get("overallScore")
-        technical_score = data.get("technicalScore")
-        communication_score = data.get("communicationScore")
-        problem_solving_score = data.get("problemSolvingScore")
-        confidence_score = data.get("confidenceScore")
-        categories = data.get("categories")
-        detailed_feedback = data.get("detailedFeedback")
-        suggestions = data.get("suggestions")
-        strengths = data.get("strengths")
-        areas_for_improvement = data.get("areasForImprovement")
-        ai_generated_feedback = data.get("aiGeneratedFeedback")
-        transcript = data.get("transcript")
-        tts_feedback = data.get("ttsFeedback")
-        
-        if not session_id or not user_email:
-            return JSONResponse({"error": "Missing required fields"}, status_code=400)
-        
-        # Save enhanced feedback
-        feedback_id = save_feedback_enhanced(
-            session_id=session_id,
-            user_email=user_email,
-            overall_score=overall_score,
-            technical_score=technical_score,
-            communication_score=communication_score,
-            problem_solving_score=problem_solving_score,
-            confidence_score=confidence_score,
-            categories=categories,
-            detailed_feedback=detailed_feedback,
-            suggestions=suggestions,
-            strengths=strengths,
-            areas_for_improvement=areas_for_improvement,
-            ai_generated_feedback=ai_generated_feedback,
-            transcript=transcript,
-            tts_feedback=tts_feedback
-        )
-        
-        # Update session with feedback info and end time
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE interview_sessions 
-            SET 
-                end_time = ?,
-                status = 'completed',
-                session_data = json_set(
-                    COALESCE(session_data, '{}'),
-                    '$.feedback_id', ?,
-                    '$.feedback_saved_at', ?,
-                    '$.overall_score', ?
-                )
-            WHERE session_id = ?
-        """, (datetime.now().isoformat(), feedback_id, datetime.now().isoformat(), overall_score, session_id))
-        conn.commit()
-        conn.close()
-        
-        # Update dashboard stats
-        try:
-            update_dashboard_stats_after_interview(user_email, overall_score)
-        except Exception as e:
-            logger.error(f"Error updating dashboard stats: {e}")
-        
-        return {
-            "success": True,
-            "feedbackId": feedback_id,
-            "message": "Feedback saved successfully"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error saving feedback: {str(e)}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.get("/api/interview/session/{session_id}")
-async def get_session(session_id: str):
-    """Get interview session details"""
-    try:
-        session = get_interview_session(session_id)
-        if session:
-            return {"success": True, "session": session}
-        else:
-            return JSONResponse({"error": "Session not found"}, status_code=404)
-    except Exception as e:
-        logger.error(f"Error getting session: {str(e)}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.get("/api/interview/history/{user_email}")
-async def get_interview_history(user_email: str, limit: int = 10):
-    """Get user's interview history"""
-    try:
-        history = get_user_interview_history(user_email, limit)
-        return {"success": True, "history": history}
-    except Exception as e:
-        logger.error(f"Error getting interview history: {str(e)}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.get("/api/interview/history")
-async def get_interview_history_general(request: Request):
-    """Get interview history for the authenticated user"""
-    try:
-        # Extract user email from request headers
-        user_email = request.headers.get("X-User-Email")
-        if not user_email:
-            return {"success": False, "error": "User not authenticated"}
-        
-        history = get_user_interview_history(user_email, 20)
-        return {"success": True, "sessions": history}
-    except Exception as e:
-        logger.error(f"Error getting interview history: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.get("/api/practice/history")
-async def get_practice_history(request: Request):
-    """Get practice history for the authenticated user"""
-    try:
-        # Extract user email from request headers
-        user_email = request.headers.get("X-User-Email")
-        if not user_email:
-            return {"success": False, "error": "User not authenticated"}
-        
-        # For now, return mock practice data
-        # In a real implementation, you would query a practice_sessions table
-        mock_practice_data = [
-            {
-                "id": 1,
-                "type": "practice",
-                "mode": "beginner",
-                "score": 7.5,
-                "duration": 1800,  # 30 minutes in seconds
-                "created_at": "2024-01-15T10:30:00Z",
-                "questions_answered": 5
-            },
-            {
-                "id": 2,
-                "type": "practice",
-                "mode": "intermediate",
-                "score": 8.2,
-                "duration": 2400,  # 40 minutes in seconds
-                "created_at": "2024-01-14T14:20:00Z",
-                "questions_answered": 7
-            },
-            {
-                "id": 3,
-                "type": "practice",
-                "mode": "behavioral",
-                "score": 6.8,
-                "duration": 1200,  # 20 minutes in seconds
-                "created_at": "2024-01-13T09:15:00Z",
-                "questions_answered": 4
-            }
-        ]
-        
-        return {"success": True, "sessions": mock_practice_data}
-    except Exception as e:
-        logger.error(f"Error getting practice history: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.get("/api/interview/sessions-with-transcripts/{user_email}")
-async def get_interview_sessions_with_transcripts(user_email: str, limit: int = 20):
-    """Get user's interview sessions with their associated transcripts"""
-    try:
-        import sqlite3
-        import json
-        
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
-        
-        # Get interview sessions with feedback scores
-        cursor.execute("""
-            SELECT s.session_id, s.role, s.interview_mode, s.status, s.start_time, s.end_time,
-                   s.total_questions, s.questions_answered, f.overall_score, f.technical_score,
-                   f.communication_score, f.problem_solving_score, f.confidence_score
-            FROM interview_sessions s
-            LEFT JOIN feedback f ON s.session_id = f.session_id
-            WHERE s.user_email = ?
-            ORDER BY s.start_time DESC
-            LIMIT ?
-        """, (user_email, limit))
-        
-        sessions = cursor.fetchall()
-        
-        # Get transcripts for this user (since session IDs might not match)
-        cursor.execute("""
-            SELECT session_id, transcript_data, created_at
-            FROM transcripts 
-            WHERE email = ?
-            ORDER BY created_at DESC
-        """, (user_email,))
-        
-        transcript_rows = cursor.fetchall()
-        transcripts = {}
-        for row in transcript_rows:
-            session_id, transcript_data, created_at = row
-            try:
-                parsed_data = json.loads(transcript_data) if isinstance(transcript_data, str) else transcript_data
-                transcripts[session_id] = {
-                    "data": parsed_data,
-                    "createdAt": created_at
-                }
-            except:
-                transcripts[session_id] = {
-                    "data": transcript_data,
-                    "createdAt": created_at
-                }
-        
-        conn.close()
-        
-        # Combine sessions with transcripts
-        result = []
-        for session in sessions:
-            session_id, role, interview_mode, status, start_time, end_time, total_questions, questions_answered, overall_score, technical_score, communication_score, problem_solving_score, confidence_score = session
-            
-            # Calculate duration if end_time is available
-            duration = "00:00"
-            if start_time and end_time:
-                try:
-                    from datetime import datetime
-                    start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                    end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
-                    duration_seconds = int((end_dt - start_dt).total_seconds())
-                    minutes = duration_seconds // 60
-                    seconds = duration_seconds % 60
-                    duration = f"{minutes:02d}:{seconds:02d}"
-                except:
-                    pass
-            
-            # Try to find matching transcript data
-            transcript_data = {}
-            transcript_created_at = None
-            
-            # First try exact session ID match
-            if session_id in transcripts:
-                transcript_data = transcripts[session_id].get("data", {})
-                transcript_created_at = transcripts[session_id].get("createdAt")
-            else:
-                # Try to find transcript by matching creation time or other criteria
-                # For now, let's use the first available transcript for this user
-                if transcripts:
-                    # Get the most recent transcript
-                    first_transcript_key = list(transcripts.keys())[0]
-                    transcript_data = transcripts[first_transcript_key].get("data", {})
-                    transcript_created_at = transcripts[first_transcript_key].get("createdAt")
-            
-            scorecard = transcript_data.get("scorecard", [])
-            actual_questions_answered = len(scorecard) if isinstance(scorecard, list) else 0
-            
-            # If no transcript data, use a default question count based on interview mode
-            if actual_questions_answered == 0:
-                if interview_mode == "technical":
-                    default_questions = 5
-                elif interview_mode == "hr":
-                    default_questions = 3
-                elif interview_mode == "behavioral":
-                    default_questions = 4
-                else:
-                    default_questions = 3
-                actual_questions_answered = default_questions
-            
-            session_data = {
-                "sessionId": session_id,
-                "role": role,
-                "interviewMode": interview_mode,
-                "status": status,
-                "startTime": start_time,
-                "endTime": end_time,
-                "duration": duration,
-                "totalQuestions": actual_questions_answered,
-                "questionsAnswered": actual_questions_answered,
-                "overallScore": overall_score,
-                "technicalScore": technical_score,
-                "communicationScore": communication_score,
-                "problemSolvingScore": problem_solving_score,
-                "confidenceScore": confidence_score,
-                "transcript": transcript_data,
-                "transcriptCreatedAt": transcript_created_at
-            }
-            
-            result.append(session_data)
-        
-        return {"success": True, "sessions": result}
-    except Exception as e:
-        logger.error(f"Error getting interview sessions with transcripts: {str(e)}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.get("/api/dashboard/stats/{user_email}")
-async def get_dashboard_stats_api(user_email: str):
-    """Get enhanced dashboard statistics"""
-    try:
-        stats = get_dashboard_stats_enhanced(user_email)
-        if stats:
-            return {"success": True, "stats": stats}
-        else:
-            return {"success": True, "stats": {
-                "totalInterviews": 0,
-                "completedInterviews": 0,
-                "avgOverallScore": 0,
-                "avgTechnicalScore": 0,
-                "avgCommunicationScore": 0,
-                "avgProblemSolvingScore": 0,
-                "avgConfidenceScore": 0,
-                "totalTimeSpent": 0,
-                "lastInterviewDate": None,
-                "bestScore": 0,
-                "improvementTrend": None
-            }}
-    except Exception as e:
-        logger.error(f"Error getting dashboard stats: {str(e)}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
 @app.post("/api/analytics/save")
@@ -2333,280 +2255,74 @@ async def export_interview_data(session_id: str):
         logger.error(f"Error exporting interview data: {str(e)}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
-@app.post("/api/feedback/enhanced-analysis")
-async def enhanced_feedback_analysis(request: Request):
-    """Enhanced feedback analysis combining LLM and rule-based evaluation"""
-    try:
-        data = await request.json()
-        question = data.get("question", {})
-        response = data.get("response", "")
-        mode = data.get("mode", "hr")
-        role = data.get("role", "Software Engineer")
-        context = data.get("context", {})
-        
-        if not question or not response:
-            return JSONResponse({"error": "Missing question or response"}, status_code=400)
-        
-        # Get rule-based evaluation from interview modes
-        rule_evaluation = interview_mode_manager.evaluate_response(question, response, mode)
-        
-        # Get LLM-based analysis
-        llm_analysis = await feedback_engine.analyze_interview_response(
-            question.get("question", ""), response, role, context
-        )
-        
-        # Combine and enhance the analysis
-        enhanced_analysis = {
-            "overall_score": (rule_evaluation.get("score", 0) + llm_analysis.get("score", 0) * 10) / 2,
-            "rule_based_evaluation": rule_evaluation,
-            "llm_analysis": llm_analysis,
-            "combined_metrics": {
-                "technical_depth": max(rule_evaluation.get("technical_depth", 0), llm_analysis.get("technical_depth", 0)),
-                "communication_clarity": max(rule_evaluation.get("communication_clarity", 0), llm_analysis.get("communication_clarity", 0)),
-                "emotional_intelligence": max(rule_evaluation.get("emotional_intelligence", 0), llm_analysis.get("emotional_intelligence", 0)),
-                "cultural_fit": max(rule_evaluation.get("cultural_fit", 0), llm_analysis.get("cultural_fit", 0)),
-                "problem_solving": max(rule_evaluation.get("problem_solving", 0), llm_analysis.get("problem_solving", 0)),
-                "confidence_level": max(rule_evaluation.get("confidence_level", 0), llm_analysis.get("confidence_level", 0)),
-                "leadership_potential": rule_evaluation.get("leadership_potential", 0),
-                "innovation_creativity": rule_evaluation.get("innovation_creativity", 0),
-                "stress_management": rule_evaluation.get("stress_management", 0),
-                "adaptability": rule_evaluation.get("adaptability", 0)
-            },
-            "performance_insights": {
-                "strengths": list(set(rule_evaluation.get("strengths", []) + llm_analysis.get("strengths", []))),
-                "improvements": list(set(rule_evaluation.get("improvements", []) + llm_analysis.get("improvements", []))),
-                "keywords_found": rule_evaluation.get("keywords_found", []),
-                "ai_keywords": llm_analysis.get("keywords", [])
-            },
-            "recommendations": {
-                "immediate_actions": [
-                    "Practice the identified improvement areas",
-                    "Review similar questions in your target role",
-                    "Record and analyze your responses"
-                ],
-                "long_term_development": [
-                    "Build on your identified strengths",
-                    "Focus on the weakest areas systematically",
-                    "Seek feedback from mentors or peers"
-                ]
-            },
-            "confidence_score": (rule_evaluation.get("confidence", 0) + llm_analysis.get("confidence", 0)) / 2,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        return {
-            "success": True,
-            "analysis": enhanced_analysis
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in enhanced feedback analysis: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.post("/api/feedback/session-comprehensive")
-async def comprehensive_session_feedback(request: Request):
-    """Generate comprehensive feedback for entire interview session"""
+@app.post("/api/ai/test-analysis")
+async def test_ai_analysis(request: Request):
+    """Test endpoint for AI analysis without OpenAI API calls"""
     try:
         data = await request.json()
         session_data = data.get("session_data", {})
-        role = data.get("role", "Software Engineer")
-        mode = data.get("mode", "hr")
+        analysis_type = data.get("analysis_type", "post_interview")
         
         if not session_data:
             return JSONResponse({"error": "Missing session data"}, status_code=400)
         
-        # Generate comprehensive LLM feedback
-        llm_comprehensive = await feedback_engine.generate_comprehensive_feedback(session_data, role)
-        
-        # Analyze emotional intelligence across all responses
-        responses = session_data.get("responses", [])
-        ei_analysis = await feedback_engine.analyze_emotional_intelligence(responses)
-        
-        # Calculate session-wide metrics
-        session_metrics = {
-            "total_questions": len(responses),
-            "average_response_time": sum(r.get("response_time", 0) for r in responses) / len(responses) if responses else 0,
-            "consistency_score": self._calculate_consistency_score(responses),
-            "improvement_trend": self._calculate_improvement_trend(responses),
-            "strongest_areas": self._identify_strongest_areas(responses),
-            "weakest_areas": self._identify_weakest_areas(responses)
-        }
-        
-        comprehensive_feedback = {
-            "session_overview": {
-                "role": role,
-                "mode": mode,
-                "total_questions": session_metrics["total_questions"],
-                "session_duration": session_data.get("duration", 0),
-                "overall_performance": llm_comprehensive.get("overall_score", 0)
-            },
-            "performance_analysis": llm_comprehensive,
-            "emotional_intelligence": ei_analysis,
-            "session_metrics": session_metrics,
-            "detailed_breakdown": {
-                "technical_performance": {
-                    "score": llm_comprehensive.get("technical_score", 0),
-                    "strengths": [s for s in llm_comprehensive.get("strengths", []) if "technical" in s.lower()],
-                    "improvements": [i for i in llm_comprehensive.get("improvements", []) if "technical" in i.lower()]
-                },
-                "communication_performance": {
-                    "score": llm_comprehensive.get("communication_score", 0),
-                    "strengths": [s for s in llm_comprehensive.get("strengths", []) if "communication" in s.lower()],
-                    "improvements": [i for i in llm_comprehensive.get("improvements", []) if "communication" in i.lower()]
-                },
-                "leadership_potential": {
-                    "score": llm_comprehensive.get("leadership_score", 0),
-                    "indicators": self._extract_leadership_indicators(responses)
-                }
-            },
-            "action_plan": {
-                "immediate_next_steps": llm_comprehensive.get("next_steps", []),
-                "skill_development": llm_comprehensive.get("development_plan", []),
-                "career_guidance": llm_comprehensive.get("career_advice", []),
-                "practice_recommendations": self._generate_practice_recommendations(session_metrics, mode)
-            },
-            "predictive_insights": {
-                "interview_readiness": llm_comprehensive.get("interview_readiness", 0),
-                "projected_performance": self._project_performance(session_metrics),
-                "confidence_level": "high" if session_metrics["consistency_score"] > 7 else "medium"
-            }
-        }
-        
-        return {
+        # Return mock analysis data for testing
+        mock_analysis = {
             "success": True,
-            "comprehensive_feedback": comprehensive_feedback
+            "analysis_type": analysis_type,
+            "timestamp": datetime.now().isoformat(),
+            "session_id": session_data.get("session_id", "test-session"),
+            "overall_score": 8,
+            "metrics": {
+                "technical_accuracy": 0.8,
+                "communication_clarity": 0.7,
+                "confidence_level": 0.6,
+                "problem_solving": 0.8,
+                "cultural_fit": 0.7,
+                "emotional_intelligence": 0.6,
+                "leadership_potential": 0.5,
+                "learning_ability": 0.8
+            },
+            "summary": "This is a test analysis showing the structure of AI feedback. In a real implementation, this would contain AI-generated insights based on your interview responses.",
+            "strengths": [
+                "Good technical knowledge demonstrated",
+                "Clear communication style",
+                "Logical problem-solving approach"
+            ],
+            "improvements": [
+                "Could provide more specific examples",
+                "Show more confidence in responses",
+                "Include quantifiable achievements"
+            ],
+            "recommendations": [
+                "Practice mock interviews regularly",
+                "Build a portfolio of projects",
+                "Network with industry professionals"
+            ],
+            "next_steps": [
+                "Review this feedback thoroughly",
+                "Create a 30-day improvement plan",
+                "Schedule follow-up practice sessions"
+            ],
+            "career_advice": [
+                "Focus on skill development in your weak areas",
+                "Consider pursuing relevant certifications",
+                "Build your professional network"
+            ],
+            "skill_gaps": [
+                "Advanced system design concepts",
+                "Leadership and team management",
+                "Industry-specific domain knowledge"
+            ],
+            "development_plan": [
+                "30 days: Focus on technical skill building",
+                "60 days: Work on communication and confidence",
+                "90 days: Apply for roles and practice interviews"
+            ]
         }
+        
+        return mock_analysis
         
     except Exception as e:
-        logger.error(f"Error generating comprehensive session feedback: {e}")
+        logger.error(f"Error in test AI analysis: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
-
-def _calculate_consistency_score(self, responses: List[Dict[str, Any]]) -> float:
-    """Calculate consistency score across responses"""
-    if not responses:
-        return 0
-    
-    scores = [r.get("score", 0) for r in responses]
-    if not scores:
-        return 0
-    
-    mean_score = sum(scores) / len(scores)
-    variance = sum((score - mean_score) ** 2 for score in scores) / len(scores)
-    std_dev = variance ** 0.5
-    
-    # Lower standard deviation = higher consistency
-    consistency = max(0, 10 - (std_dev * 2))
-    return round(consistency, 1)
-
-def _calculate_improvement_trend(self, responses: List[Dict[str, Any]]) -> str:
-    """Calculate improvement trend across responses"""
-    if len(responses) < 3:
-        return "insufficient_data"
-    
-    scores = [r.get("score", 0) for r in responses]
-    first_half = scores[:len(scores)//2]
-    second_half = scores[len(scores)//2:]
-    
-    first_avg = sum(first_half) / len(first_half)
-    second_avg = sum(second_half) / len(second_half)
-    
-    if second_avg > first_avg + 1:
-        return "improving"
-    elif second_avg < first_avg - 1:
-        return "declining"
-    else:
-        return "stable"
-
-def _identify_strongest_areas(self, responses: List[Dict[str, Any]]) -> List[str]:
-    """Identify strongest performance areas"""
-    if not responses:
-        return []
-    
-    # Aggregate all strengths from responses
-    all_strengths = []
-    for response in responses:
-        all_strengths.extend(response.get("strengths", []))
-    
-    # Count frequency and return top 3
-    from collections import Counter
-    strength_counts = Counter(all_strengths)
-    return [strength for strength, count in strength_counts.most_common(3)]
-
-def _identify_weakest_areas(self, responses: List[Dict[str, Any]]) -> List[str]:
-    """Identify weakest performance areas"""
-    if not responses:
-        return []
-    
-    # Aggregate all improvements from responses
-    all_improvements = []
-    for response in responses:
-        all_improvements.extend(response.get("improvements", []))
-    
-    # Count frequency and return top 3
-    from collections import Counter
-    improvement_counts = Counter(all_improvements)
-    return [improvement for improvement, count in improvement_counts.most_common(3)]
-
-def _extract_leadership_indicators(self, responses: List[Dict[str, Any]]) -> List[str]:
-    """Extract leadership indicators from responses"""
-    indicators = []
-    for response in responses:
-        response_text = response.get("response", "").lower()
-        if any(word in response_text for word in ["led", "managed", "initiated", "mentored"]):
-            indicators.append("Leadership actions mentioned")
-        if any(word in response_text for word in ["team", "collaboration", "coordination"]):
-            indicators.append("Team collaboration demonstrated")
-        if any(word in response_text for word in ["decision", "strategy", "vision"]):
-            indicators.append("Strategic thinking shown")
-    
-    return list(set(indicators))
-
-def _generate_practice_recommendations(self, session_metrics: Dict[str, Any], mode: str) -> List[str]:
-    """Generate practice recommendations based on session metrics"""
-    recommendations = []
-    
-    if session_metrics.get("consistency_score", 0) < 6:
-        recommendations.append("Focus on consistency - practice similar questions multiple times")
-    
-    if session_metrics.get("improvement_trend") == "declining":
-        recommendations.append("Review your approach - consider taking breaks between practice sessions")
-    
-    weakest_areas = session_metrics.get("weakest_areas", [])
-    if "communication" in str(weakest_areas).lower():
-        recommendations.append("Practice clear communication - record and review your responses")
-    
-    if "technical" in str(weakest_areas).lower():
-        recommendations.append("Strengthen technical fundamentals - review core concepts")
-    
-    recommendations.append(f"Practice more {mode} interview questions to build confidence")
-    
-    return recommendations
-
-def _project_performance(self, session_metrics: Dict[str, Any]) -> Dict[str, Any]:
-    """Project future performance based on current metrics"""
-    current_score = session_metrics.get("average_score", 5)
-    consistency = session_metrics.get("consistency_score", 5)
-    trend = session_metrics.get("improvement_trend", "stable")
-    
-    # Simple projection model
-    if trend == "improving":
-        projected_1month = min(10, current_score + 1)
-        projected_3months = min(10, current_score + 2)
-    elif trend == "declining":
-        projected_1month = max(0, current_score - 0.5)
-        projected_3months = max(0, current_score - 1)
-    else:
-        projected_1month = current_score
-        projected_3months = current_score + 0.5
-    
-    return {
-        "current_score": current_score,
-        "projected_1month": round(projected_1month, 1),
-        "projected_3months": round(projected_3months, 1),
-        "confidence": "high" if consistency > 7 else "medium"
-    }
-
-# Main function to run the Socket.IO app
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(socket_app, host="0.0.0.0", port=8000)

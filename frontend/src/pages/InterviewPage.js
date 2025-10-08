@@ -921,7 +921,7 @@ const InterviewPage = () => {
           await endInterview();
         } else {
           showToast('Interview completed in offline mode!', 'success');
-          navigate('/dashboard', { 
+          navigate('/feedback', { 
             state: { 
               sessionId,
               responses,
@@ -952,7 +952,7 @@ const InterviewPage = () => {
       
       if (data.success) {
         showToast('Interview completed successfully!', 'success');
-        navigate('/dashboard', { 
+        navigate('/feedback', { 
           state: { 
             sessionId,
             responses,

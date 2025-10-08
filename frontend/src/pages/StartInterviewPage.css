@@ -1,6 +1,7 @@
 .start-interview-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  /* new app background (deep purple gradient from provided image) */
+  background: linear-gradient(135deg, #1b183a 0%, #2a0845 100%);
   padding: 20px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -45,8 +46,8 @@
   left: 20px;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.25);
   color: white;
   padding: 12px 20px;
   border-radius: 15px;
@@ -63,8 +64,8 @@
 }
 
 .back-button:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-50%) scale(1.05);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
@@ -74,8 +75,8 @@
   right: 20px;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: white;
   padding: 10px 15px;
   border-radius: 10px;
@@ -88,7 +89,7 @@
 }
 
 .back-to-dashboard-btn:hover {
-  background: rgba(192, 132, 252, 0.2);
+  background: rgba(0, 0, 0, 0.45);
   border-color: rgba(192, 132, 252, 0.4);
   transform: translateY(-50%) scale(1.05);
 }
@@ -1149,6 +1150,44 @@
   flex-direction: column;
 }
 
+/* Ensure header inside the live interview uses dark theme, not white from other pages */
+.interview-interface .interview-header {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #c084fc 100%);
+  color: white;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5);
+  border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.interview-interface .interview-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%, rgba(255, 255, 255, 0.1) 100%);
+  pointer-events: none;
+}
+
+.interview-interface .interview-header h2 {
+  font-size: 2.8rem;
+  font-weight: 900;
+  margin: 0 0 15px 0;
+  color: #ffffff;
+  text-shadow: 0 0 40px rgba(255, 255, 255, 0.4);
+  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .interview-header {
   text-align: center;
   padding: 40px 20px;
@@ -1192,22 +1231,22 @@
   margin: 0;
   position: relative;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.15);
-  padding: 12px 24px;
-  border-radius: 25px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
   display: inline-block;
-  backdrop-filter: blur(15px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: none;
+  border: none;
+  box-shadow: none;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
 .interview-header p:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  background: transparent;
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
 }
 
 .interview-circles-container {
@@ -1588,6 +1627,48 @@
   transform: translateY(-2px);
 }
 
+/* Fetch Response Button */
+.fetch-response-btn {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  margin-right: 10px;
+}
+
+.fetch-response-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.fetch-response-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.fetch-response-btn .spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Interview Controls */
 .interview-controls {
   background: rgba(255, 255, 255, 0.05);
@@ -1814,4 +1895,4 @@
     flex-direction: column;
     text-align: center;
   }
-} 
+}

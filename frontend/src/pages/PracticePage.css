@@ -1,7 +1,7 @@
 /* Practice Page Styles */
 .practice-modes-container {
   min-height: 100vh;
-  background: #181a20;
+  background: linear-gradient(135deg, #1b183a 0%, #2a0845 100%);
   padding: 40px 20px;
   color: #ffffff;
 }
@@ -541,4 +541,106 @@
   .question-card p {
     font-size: 1.1rem;
   }
-} 
+}
+
+.feedback-page {
+  min-height: 100vh;
+  background: #181a20;
+  padding: 40px 20px;
+  color: #ffffff;
+}
+
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  padding: 20px;
+  background: rgba(34, 34, 68, 0.85);
+  border-radius: 16px;
+}
+
+.feedback-header h1 {
+  color: #c084fc;
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.feedback-header p {
+  color: #a1a1aa;
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0;
+  text-align: left;
+}
+
+.feedback-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.feedback-section {
+  margin-bottom: 40px;
+}
+
+.feedback-section h3 {
+  color: #c084fc;
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+}
+
+.feedback-card {
+  background: rgba(34, 34, 68, 0.85);
+  border-radius: 16px;
+  padding: 24px;
+  border-left: 4px solid #c084fc;
+}
+
+.feedback-card p {
+  font-size: 1.3rem;
+  line-height: 1.6;
+  color: #ffffff;
+  margin: 0;
+}
+
+.feedback-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.close-button, .retry-button {
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-button {
+  background: #6b7280;
+  color: #ffffff;
+}
+
+.close-button:hover {
+  background: #4b5563;
+}
+
+.retry-button {
+  background: #4ade80;
+  color: #181a20;
+}
+
+.retry-button:hover {
+  background: #22c55e;
+}
+
+.practice-page {
+  min-height: 100vh;
+  /* new app background (deep purple gradient from provided image) */
+  background: linear-gradient(180deg, #13031a 0%, #2b0536 45%, #3b0a56 100%);
+  padding: 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}

@@ -1,203 +1,310 @@
 import sqlite3
 import json
+import os
+import traceback
 from datetime import datetime
+from typing import Optional, Dict, Any, List, Union, Tuple
 
-DB_PATH = "database.db"  # Use your existing database file
+# Import database configuration
+from config import DATABASE_PATH as DB_PATH
+
+# Print database info
+print(f"\n{'='*50}")
+print(f"Database Configuration")
+print(f"{'='*50}")
+print(f"Database path: {DB_PATH}")
+print(f"Database exists: {'Yes' if os.path.exists(DB_PATH) else 'No'}")
+print(f"{'='*50}\n")
+
+# Database connection parameters
+DB_TIMEOUT = 30.0  # seconds
+DB_ISOLATION_LEVEL = "IMMEDIATE"  # Use EXCLUSIVE for single writer, or IMMEDIATE for multiple readers/single writer
+
+class DatabaseError(Exception):
+    """Custom exception for database-related errors."""
+    pass
+
+def get_connection() -> sqlite3.Connection:
+    """Get a database connection with optimized settings."""
+    try:
+        # Create parent directory if it doesn't exist
+        os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
+        
+        # Connect to the database with optimized settings
+        conn = sqlite3.connect(
+            database=DB_PATH,
+            timeout=DB_TIMEOUT,
+            isolation_level=DB_ISOLATION_LEVEL,
+            detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+        )
+        
+        # Optimize database settings
+        conn.execute("PRAGMA journal_mode = WAL")  # Better concurrency
+        conn.execute("PRAGMA synchronous = NORMAL")  # Good balance between safety and speed
+        conn.execute("PRAGMA foreign_keys = ON")  # Enforce foreign key constraints
+        conn.execute("PRAGMA temp_store = MEMORY")  # Store temp tables in memory
+        conn.execute("PRAGMA mmap_size = 30000000000")  # 30GB of memory for memory mapping
+        
+        return conn
+    except sqlite3.Error as e:
+        print(f"Database connection error: {e}")
+        print(f"Database path: {os.path.abspath(DB_PATH)}")
+        print(f"Current working directory: {os.getcwd()}")
+        raise DatabaseError(f"Failed to connect to database: {e}")
+
+def execute_query(query: str, params: tuple = (), fetch: bool = True) -> Union[List[Dict[str, Any]], int]:
+    """Execute a SQL query and return results as a list of dictionaries."""
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Execute the query
+        cursor.execute(query, params)
+        
+        # For SELECT queries, return results as list of dicts
+        if fetch and query.strip().upper().startswith('SELECT'):
+            columns = [col[0] for col in cursor.description]
+            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        # For INSERT, UPDATE, DELETE, return number of affected rows
+        elif not fetch:
+            conn.commit()
+            return cursor.rowcount
+        
+        return []
+    except sqlite3.Error as e:
+        if conn:
+            conn.rollback()
+        print(f"Query failed: {e}")
+        print(f"Query: {query}")
+        print(f"Parameters: {params}")
+        traceback.print_exc()
+        raise DatabaseError(f"Database operation failed: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
-    # Users table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            username TEXT,
-            gmail TEXT NOT NULL UNIQUE,
-            email TEXT,
-            password TEXT NOT NULL,
-            phone TEXT,
-            address TEXT,
-            profile_pic TEXT,
-            role TEXT DEFAULT 'User',
-            language TEXT DEFAULT 'English',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    
-    # Interview sessions table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS interview_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT UNIQUE NOT NULL,
-            user_email TEXT NOT NULL,
-            role TEXT NOT NULL,
-            interview_mode TEXT DEFAULT 'standard',
-            status TEXT DEFAULT 'active',
-            start_time TEXT DEFAULT CURRENT_TIMESTAMP,
-            end_time TEXT,
-            total_questions INTEGER DEFAULT 0,
-            questions_answered INTEGER DEFAULT 0,
-            current_question_index INTEGER DEFAULT 0,
-            session_data TEXT,  -- JSON data for session state
-            resume_analysis TEXT,  -- JSON data for resume analysis
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        )
-    """)
-    
-    # Add resume_analysis column if it doesn't exist (for existing databases)
+    """Initialize the database with required tables if they don't exist."""
     try:
-        cursor.execute("ALTER TABLE interview_sessions ADD COLUMN resume_analysis TEXT")
-    except sqlite3.OperationalError:
-        # Column already exists, ignore the error
-        pass
-    
-    # Interview questions table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS interview_questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL,
-            question_index INTEGER NOT NULL,
-            question_text TEXT NOT NULL,
-            question_type TEXT DEFAULT 'text',
-            category TEXT,
-            difficulty TEXT DEFAULT 'medium',
-            asked_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id)
+        # Users table
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                username TEXT,
+                gmail TEXT NOT NULL UNIQUE,
+                email TEXT,
+                password TEXT NOT NULL,
+                phone TEXT,
+                address TEXT,
+                profile_pic TEXT,
+                role TEXT DEFAULT 'User',
+                language TEXT DEFAULT 'English',
+                created_at TEXT DEFAULT (datetime('now', 'localtime')),
+                last_login TEXT,
+                is_active BOOLEAN DEFAULT 1,
+                reset_token TEXT,
+                reset_token_expires TEXT
+            )
+            """,
+            fetch=False,
         )
-    """)
-    
-    # User responses table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS user_responses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL,
-            question_id INTEGER NOT NULL,
-            user_answer TEXT,
-            audio_file_path TEXT,
-            response_duration REAL,
-            confidence_score REAL,
-            emotion_detected TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id),
-            FOREIGN KEY (question_id) REFERENCES interview_questions(id)
-        )
-    """)
-    
-    # Enhanced transcripts table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS transcripts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL,
-            user_email TEXT NOT NULL,
-            transcript_data TEXT NOT NULL,  -- JSON with structured transcript
-            raw_audio_path TEXT,
-            processed_audio_path TEXT,
-            word_timestamps TEXT,  -- JSON array of word timestamps
-            confidence_scores TEXT,  -- JSON array of confidence scores
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id),
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        )
-    """)
-    
-    # Enhanced feedback table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS feedback (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL,
-            user_email TEXT NOT NULL,
-            overall_score REAL,
-            technical_score REAL,
-            communication_score REAL,
-            problem_solving_score REAL,
-            confidence_score REAL,
-            categories TEXT,  -- JSON array of category scores
-            detailed_feedback TEXT,
-            suggestions TEXT,
-            strengths TEXT,
-            areas_for_improvement TEXT,
-            ai_generated_feedback TEXT,
-            transcript TEXT,  -- JSON transcript data
-            tts_feedback TEXT,  -- Text-to-speech feedback
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id),
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        )
-    """)
-    
-    # Add missing columns if they don't exist (for existing databases)
-    try:
-        cursor.execute("ALTER TABLE feedback ADD COLUMN transcript TEXT")
-    except sqlite3.OperationalError:
-        # Column already exists, ignore the error
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE feedback ADD COLUMN tts_feedback TEXT")
-    except sqlite3.OperationalError:
-        # Column already exists, ignore the error
-        pass
-    
-    # Enhanced dashboard stats table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS dashboard_stats (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email TEXT NOT NULL,
-            total_interviews INTEGER DEFAULT 0,
-            completed_interviews INTEGER DEFAULT 0,
-            avg_overall_score REAL DEFAULT 0,
-            avg_technical_score REAL DEFAULT 0,
-            avg_communication_score REAL DEFAULT 0,
-            avg_problem_solving_score REAL DEFAULT 0,
-            avg_confidence_score REAL DEFAULT 0,
-            total_time_spent REAL DEFAULT 0,  -- in minutes
-            last_interview_date TEXT,
-            best_score REAL DEFAULT 0,
-            improvement_trend TEXT,  -- JSON array of recent scores
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        )
-    """)
-    
-    # Interview analytics table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS interview_analytics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL,
-            user_email TEXT NOT NULL,
-            question_analytics TEXT,  -- JSON with per-question analytics
-            emotion_analysis TEXT,  -- JSON with emotion data
-            voice_metrics TEXT,  -- JSON with voice analysis data
-            response_patterns TEXT,  -- JSON with response pattern analysis
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id),
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        )
-    """)
-    
-    # Practice sessions table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS practice_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT UNIQUE NOT NULL,
-            user_email TEXT NOT NULL,
-            mode TEXT DEFAULT 'beginner',
-            score REAL DEFAULT 0,
-            duration INTEGER DEFAULT 0,
-            questions_answered INTEGER DEFAULT 0,
-            feedback TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        )
-    """)
-    
-    conn.commit()
-    conn.close()
 
+        # Add indexes for better performance
+        execute_query(
+            """
+            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+            """,
+            fetch=False,
+        )
+
+        execute_query(
+            """
+            CREATE INDEX IF NOT EXISTS idx_users_gmail ON users(gmail);
+            """,
+            fetch=False,
+        )
+
+        # Interview sessions table
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS interview_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT UNIQUE NOT NULL,
+                user_email TEXT NOT NULL,
+                role TEXT NOT NULL,
+                interview_mode TEXT DEFAULT 'standard',
+                status TEXT DEFAULT 'active',
+                start_time TEXT DEFAULT (datetime('now', 'localtime')),
+                end_time TEXT,
+                total_questions INTEGER DEFAULT 0,
+                questions_answered INTEGER DEFAULT 0,
+                current_question_index INTEGER DEFAULT 0,
+                session_data TEXT,
+                resume_analysis TEXT,
+                created_at TEXT DEFAULT (datetime('now', 'localtime')),
+                updated_at TEXT,
+                FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+            )
+            """,
+            fetch=False,
+        )
+
+        # Ensure resume_analysis column exists (for existing databases)
+        try:
+            conn_check = get_connection()
+            cur_check = conn_check.cursor()
+            cur_check.execute("PRAGMA table_info(interview_sessions)")
+            existing_columns = [row[1] for row in cur_check.fetchall()]
+            if "resume_analysis" not in existing_columns:
+                cur_check.execute("ALTER TABLE interview_sessions ADD COLUMN resume_analysis TEXT")
+                conn_check.commit()
+            conn_check.close()
+        except Exception:
+            # Column may already exist or database may be locked during startup
+            try:
+                conn_check.close()
+            except Exception:
+                pass
+
+        # Interview questions table
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS interview_questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                question_index INTEGER NOT NULL,
+                question_text TEXT NOT NULL,
+                question_type TEXT DEFAULT 'text',
+                category TEXT,
+                difficulty TEXT DEFAULT 'medium',
+                asked_at TEXT DEFAULT (datetime('now', 'localtime')),
+                metadata TEXT,
+                FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id) ON DELETE CASCADE,
+                UNIQUE(session_id, question_index)
+            )
+            """,
+            fetch=False,
+        )
+
+        # User responses table
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS user_responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                question_id INTEGER NOT NULL,
+                user_answer TEXT,
+                audio_file_path TEXT,
+                response_duration REAL,
+                confidence_score REAL,
+                emotion_detected TEXT,
+                analysis_result TEXT,
+                created_at TEXT DEFAULT (datetime('now', 'localtime')),
+                updated_at TEXT,
+                FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id) ON DELETE CASCADE,
+                FOREIGN KEY (question_id) REFERENCES interview_questions(id) ON DELETE CASCADE
+            )
+            """,
+            fetch=False,
+        )
+
+        # Enhanced transcripts table
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS transcripts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                user_email TEXT NOT NULL,
+                transcript_data TEXT NOT NULL,
+                raw_audio_path TEXT,
+                processed_audio_path TEXT,
+                word_timestamps TEXT,
+                confidence_scores TEXT,
+                created_at TEXT DEFAULT (datetime('now', 'localtime')),
+                updated_at TEXT,
+                FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_email) REFERENCES users(email)
+            )
+            """,
+            fetch=False,
+        )
+
+        # Enhanced feedback table
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                user_email TEXT NOT NULL,
+                overall_score REAL,
+                technical_score REAL,
+                communication_score REAL,
+                problem_solving_score REAL,
+                confidence_score REAL,
+                categories TEXT,
+                detailed_feedback TEXT,
+                suggestions TEXT,
+                strengths TEXT,
+                areas_for_improvement TEXT,
+                ai_generated_feedback TEXT,
+                transcript TEXT,
+                tts_feedback TEXT,
+                created_at TEXT DEFAULT (datetime('now', 'localtime')),
+                FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id),
+                FOREIGN KEY (user_email) REFERENCES users(email)
+            )
+            """,
+            fetch=False,
+        )
+
+        # Enhanced dashboard stats table
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS dashboard_stats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email TEXT NOT NULL,
+                total_interviews INTEGER DEFAULT 0,
+                completed_interviews INTEGER DEFAULT 0,
+                avg_overall_score REAL DEFAULT 0,
+                avg_technical_score REAL DEFAULT 0,
+                avg_communication_score REAL DEFAULT 0,
+                avg_problem_solving_score REAL DEFAULT 0,
+                avg_confidence_score REAL DEFAULT 0,
+                total_time_spent REAL DEFAULT 0,
+                last_interview_date TEXT,
+                best_score REAL DEFAULT 0,
+                improvement_trend TEXT,
+                updated_at TEXT
+            )
+            """,
+            fetch=False,
+        )
+
+        # Interview analytics table
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS interview_analytics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                user_email TEXT NOT NULL,
+                question_analytics TEXT,
+                voice_metrics TEXT,
+                response_patterns TEXT,
+                created_at TEXT DEFAULT (datetime('now', 'localtime'))
+            )
+            """,
+            fetch=False,
+        )
+
+        print("Database schema initialized successfully")
+        return True
+    except Exception as e:
+        print(f"Failed to initialize database: {e}")
+        traceback.print_exc()
+        return False
 def add_user(email, username, password, gmail=None):
     try:
         conn = sqlite3.connect(DB_PATH)

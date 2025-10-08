@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FaMicrophone, 
@@ -10,6 +10,7 @@ import {
   FaBullseye,
   FaArrowRight,
   FaArrowLeft,
+  FaArrowDown,
   FaCheck,
   FaTimes,
   FaInfoCircle,
@@ -57,6 +58,138 @@ const StartInterviewPage = () => {
   const [interviewSession, setInterviewSession] = useState(null);
   const [speechSynthesis, setSpeechSynthesis] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isFetchingResponse, setIsFetchingResponse] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef(null);
+
+  const handlePauseResume = () => {
+    if (isPaused) {
+      // Resume interview
+      if (speechSynthesis) {
+        speechSynthesis.resume();
+      }
+      showToast('Interview resumed', 'info');
+    } else {
+      // Pause interview
+      if (speechSynthesis) {
+        speechSynthesis.pause();
+      }
+      showToast('Interview paused', 'info');
+    }
+    setIsPaused(!isPaused);
+  };
+
+  const handleEndInterview = () => {
+    // Stop any ongoing speech
+    if (speechSynthesis) {
+      speechSynthesis.cancel();
+    }
+    
+    // Stop media streams
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+    }
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // Reset interview state
+    setIsRecording(false);
+    setIsListening(false);
+    setShowInterviewInterface(false);
+    setShowConfirmation(false);
+    setCurrentStep(1);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setElapsedSeconds(0);
+    
+    showToast('Interview ended successfully', 'success');
+    // Navigate to feedback page with minimal context if available
+    if (interviewSession) {
+      navigate('/feedback', {
+        state: {
+          sessionId: interviewSession.sessionId,
+          responses: questionHistory.map((q, idx) => ({
+            questionIndex: idx,
+            question: q.question || '',
+            answer: q.userAnswer || ''
+          })),
+          config: interviewSession.config
+        }
+      });
+    } else {
+      navigate('/feedback');
+    }
+  };
+
+  const handleFetchResponse = async () => {
+    if (!currentQuestion) {
+      showToast('No question to get response for', 'error');
+      return;
+    }
+
+    setIsFetchingResponse(true);
+    try {
+      const response = await fetch(`${config.BACKEND_URL}/api/interview/ask`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        },
+        body: JSON.stringify({
+          answer: currentQuestion,  // The current question as the answer to get a response
+          answerCount: questionHistory.length,
+          role: selectedRole || 'Software Engineer'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response from server');
+      }
+
+      const data = await response.json();
+      
+      // Update the question history with the AI's response
+      setQuestionHistory(prev => [
+        ...prev,
+        { 
+          question: currentQuestion, 
+          answer: data.nextQuestion,  // The next question is the AI's response
+          isAI: true,
+          timestamp: new Date().toISOString(),
+          score: data.score,
+          feedback: data.feedback
+        }
+      ]);
+      
+      // Set the next question as current
+      if (data.nextQuestion && !data.nextQuestion.includes('Thank you')) {
+        setCurrentQuestion(data.nextQuestion);
+      }
+      
+      // Speak the response if speech synthesis is available
+      if (speechSynthesis && data.nextQuestion) {
+        const utterance = new SpeechSynthesisUtterance(data.nextQuestion);
+        setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        speechSynthesis.speak(utterance);
+      }
+      
+      if (data.feedback) {
+        showToast(`Response received: ${data.feedback}`, 'success');
+      } else {
+        showToast('Response generated successfully', 'success');
+      }
+    } catch (error) {
+      console.error('Error fetching response:', error);
+      showToast(error.message || 'Failed to fetch response', 'error');
+    } finally {
+      setIsFetchingResponse(false);
+    }
+  };
 
   const allInterviewTypes = [
     {
@@ -199,6 +332,51 @@ const StartInterviewPage = () => {
       console.error('Error loading user profile:', error);
     }
   };
+
+  // Timer management: start when interview interface is visible and not paused
+  useEffect(() => {
+    if (showInterviewInterface && !isPaused) {
+      if (!timerRef.current) {
+        timerRef.current = setInterval(() => {
+          setElapsedSeconds(prev => prev + 1);
+        }, 1000);
+      }
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  }, [showInterviewInterface, isPaused]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
+  const formatElapsedTime = (totalSeconds) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(seconds).padStart(2, '0');
+    return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
+  };
+
+  // Auto-submit (end) when time is up
+  useEffect(() => {
+    if (!showInterviewInterface) return;
+    const totalSeconds = Number(selectedDuration) * 60;
+    if (elapsedSeconds >= totalSeconds && totalSeconds > 0) {
+      showToast('Time is up! Interview submitted automatically.', 'info');
+      handleEndInterview();
+    }
+  }, [elapsedSeconds, selectedDuration, showInterviewInterface]);
 
   const analyzeResume = async () => {
     if (!resumeFile) {
@@ -402,6 +580,7 @@ const StartInterviewPage = () => {
         showToast('Interview session created successfully!', 'success');
         // Show the interview interface instead of navigating
         setShowInterviewInterface(true);
+        setElapsedSeconds(0);
         setShowConfirmation(false);
         // Initialize camera and audio
         initializeMediaStreams();
@@ -468,7 +647,7 @@ const StartInterviewPage = () => {
     }
   };
 
-  const generateAIQuestion = async (config, previousQuestions, context) => {
+  const generateAIQuestion = async (sessionConfig, previousQuestions, context) => {
     try {
       const response = await fetch(`${config.BACKEND_URL}/api/interview/generate-question`, {
         method: 'POST',
@@ -476,13 +655,13 @@ const StartInterviewPage = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          interviewType: config.type,
-          role: config.role,
-          difficulty: config.difficulty,
-          duration: config.duration,
+          interviewType: sessionConfig.type,
+          role: sessionConfig.role,
+          difficulty: sessionConfig.difficulty,
+          duration: sessionConfig.duration,
           previousQuestions: previousQuestions.map(q => q.question),
           context: context,
-          userEmail: config.userEmail
+          userEmail: sessionConfig.userEmail
         })
       });
 
@@ -495,7 +674,7 @@ const StartInterviewPage = () => {
     } catch (error) {
       console.error('Error generating AI question:', error);
       // Fallback questions based on interview type
-      return getFallbackQuestion(config.type, context);
+      return getFallbackQuestion(sessionConfig.type, context);
     }
   };
 
@@ -752,11 +931,11 @@ const StartInterviewPage = () => {
           <div className="analysis-grid">
             <div className="analysis-item">
               <span className="label">Skills Identified:</span>
-              <span className="value">{Object.values(resumeAnalysis.extracted_info.skills || {}).flat().length}</span>
+              <span className="value">{resumeAnalysis.skills_total_count ?? Object.values(resumeAnalysis.extracted_info.skills || {}).flat().length}</span>
             </div>
             <div className="analysis-item">
               <span className="label">Experience Level:</span>
-              <span className="value">{resumeAnalysis.extracted_info.experience?.length || 0} positions</span>
+              <span className="value">{resumeAnalysis.experience_positions_count ?? (resumeAnalysis.extracted_info.experience?.length || 0)} positions</span>
             </div>
             <div className="analysis-item">
               <span className="label">Role Match:</span>
@@ -1091,6 +1270,10 @@ const StartInterviewPage = () => {
         </button>
         <h2>Live Interview Session</h2>
         <p>AI Interviewer • {selectedInterviewType?.title}</p>
+        <div className="live-timer">
+          <FaClock />
+          <span style={{ marginLeft: '6px' }}>{formatElapsedTime(elapsedSeconds)}</span>
+        </div>
       </div>
 
       <div className="interview-circles-container">
@@ -1178,7 +1361,7 @@ const StartInterviewPage = () => {
                 <button 
                   className="start-recording-btn"
                   onClick={handleStartRecording}
-                  disabled={isListening}
+                  disabled={isSpeaking || isAiThinking}
                 >
                   <FaMicrophone />
                   Start Response
@@ -1206,11 +1389,17 @@ const StartInterviewPage = () => {
         </div>
         
         <div className="action-controls">
-          <button className="pause-btn">
-            <FaCog />
-            Pause
+          <button 
+            className={`pause-btn ${isPaused ? 'paused' : ''}`}
+            onClick={() => handlePauseResume()}
+          >
+            {isPaused ? <FaPlay /> : <FaCog />}
+            {isPaused ? 'Resume' : 'Pause'}
           </button>
-          <button className="end-interview-btn">
+          <button 
+            className="end-interview-btn"
+            onClick={handleEndInterview}
+          >
             <FaTimes />
             End Interview
           </button>

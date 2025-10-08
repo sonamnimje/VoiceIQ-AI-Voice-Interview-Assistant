@@ -387,4 +387,4 @@ class ResumeProcessor:
         return recommendations
 
 # Global processor instance
-resume_processor = ResumeProcessor() 
+resume_processor = ResumeProcessor()
