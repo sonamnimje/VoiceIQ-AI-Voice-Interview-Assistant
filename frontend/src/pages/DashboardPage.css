@@ -1,7 +1,8 @@
+
 /* Dashboard Container */
 .dashboard-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  background: linear-gradient(135deg, #1b183a 0%, #2a0845 100%);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #ffffff;
   overflow-x: hidden;
@@ -34,7 +35,7 @@
 
 /* Header Section */
 .dashboard-header {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(41, 15, 62, 0.05);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding: 2rem 0;
