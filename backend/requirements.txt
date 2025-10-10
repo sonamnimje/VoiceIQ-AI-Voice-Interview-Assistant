@@ -15,7 +15,6 @@ transformers
 torch
 torchaudio
 opencv-python
-mediapipe
 # File Processing
 python-multipart
 Pillow
