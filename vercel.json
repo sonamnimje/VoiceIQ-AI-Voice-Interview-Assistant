@@ -2,20 +2,15 @@
   "version": 2,
   "builds": [
     {
-      // Change "frontend" to the folder where your frontend's package.json lives.
       "src": "frontend/package.json",
-      // For many SPA frameworks use @vercel/static-build. For Next.js remove this and let Vercel detect it.
       "use": "@vercel/static-build",
-      // change as needed; this is an example for React (npm run build -> build folder)
       "config": { "distDir": "build" }
     }
   ],
   "routes": [
-    // If you want Vercel to proxy some calls to your Render backend, add a rewrite like below.
-    // Replace REPLACE_WITH_BACKEND_URL with the Render service URL (set in Render dashboard).
     {
       "src": "/api/(.*)",
-      "dest": "https://REPLACE_WITH_RENDER_URL/api/$1"
+      "dest": "https://voiceiq-backend.onrender.com/api/$1"
     },
     {
       "src": "/(.*)",
