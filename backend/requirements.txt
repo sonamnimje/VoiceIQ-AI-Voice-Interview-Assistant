@@ -1,6 +1,32 @@
 fastapi
 uvicorn
-sqlalchemy
+flask
+flask-socketio
+python-socketio
 openai
 python-dotenv
-python-socketio
+pydub
+# Voice and Audio Processing
+speechrecognition
+pyaudio
+webrtcvad
+# AI and ML
+transformers
+torch
+torchaudio
+opencv-python
+mediapipe
+# File Processing
+python-multipart
+Pillow
+PyPDF2
+python-docx
+# Additional utilities
+numpy
+pandas
+scikit-learn
+# WebRTC
+aiortc
+aiofiles
+# PDF Generation
+reportlab
