@@ -30,8 +30,8 @@ jobs:
       - name: Install Vercel CLI
         run: npm i -g vercel
 
-      - name: Deploy to Vercel
-        run: vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --confirm --cwd frontend
+      - name: Deploy to Vercel (use vercel.json at repo root)
+        run: vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --confirm
 
       - name: Deployment notice
         run: echo "If the workflow succeeded, the frontend was deployed to Vercel."
