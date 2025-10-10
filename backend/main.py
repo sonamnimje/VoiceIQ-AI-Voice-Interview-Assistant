@@ -136,6 +136,12 @@ def root():
         "socketio_endpoint": "/socket.io/"
     }
 
+
+@app.get("/api/health")
+async def api_health():
+    """Simple health check endpoint for monitoring/deploy checks"""
+    return {"status": "ok"}
+
 @app.post("/save_dashboard_stats")
 async def api_save_dashboard_stats(request: Request):
     data = await request.json()
