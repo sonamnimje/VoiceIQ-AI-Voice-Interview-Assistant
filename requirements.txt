@@ -8,7 +8,11 @@ python-dotenv
 pydub
 # Voice and Audio Processing
 speechrecognition
-pyaudio
+# PyAudio fails to build on many Linux CI/build images because it
+# requires the system PortAudio headers and native build tools.
+# Install pyaudio only on non-Linux platforms (Windows/macOS).
+# See: https://github.com/intxcc/pyaudio_portaudio
+pyaudio; sys_platform == "win32" or sys_platform == "darwin"
 webrtcvad
 soundfile
 scipy
