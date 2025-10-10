@@ -35,3 +35,21 @@ jobs:
 
       - name: Deployment notice
         run: echo "If the workflow succeeded, the frontend was deployed to Vercel."
+
+      - name: Smoke test deployed site
+        run: |
+          # Known production preview domain; change if your Vercel project uses a different URL
+          VERCEL_URL="https://voiceiq-eta.vercel.app"
+          echo "Checking $VERCEL_URL/api/health for backend response..."
+          for i in {1..12}; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$VERCEL_URL/api/health" || echo "000")
+            if [ "$status" = "200" ]; then
+              body=$(curl -s "$VERCEL_URL/api/health")
+              echo "Response body: $body"
+              echo "$body" | grep -q '{"status":"ok"}' && echo "Smoke test passed" && exit 0 || echo "Health response mismatch"
+            fi
+            echo "Attempt $i: status=$status - waiting 5s"
+            sleep 5
+          done
+          echo "Smoke test failed: /api/health did not return expected response" >&2
+          exit 1
