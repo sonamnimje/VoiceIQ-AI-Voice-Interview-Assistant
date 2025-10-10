@@ -34,51 +34,51 @@ VoiceIQ is an advanced AI-powered interview preparation platform that provides r
 ### Prerequisites
 - Node.js (v14 or higher)
 - Python (v3.8 or higher)
-- FFmpeg (for audio processing)
+- FFmpeg (for audio processing) — install via package manager:
+  - macOS: brew install ffmpeg
+  - Ubuntu/Debian: sudo apt install ffmpeg
+  - Windows: download from https://ffmpeg.org/download.html and add to PATH
 
-### Installation
-
-#### Option 1: Using Batch Scripts (Windows)
-1. Download the repository
-2. Run the appropriate batch file:
-   - `start_localhost.bat` - For local development
-   - `start_network.bat` - For network access
-
-#### Option 2: Manual Setup
-
-1. **Clone the repository**
+### Installation (monorepo: root contains frontend/ and backend/)
+1. Clone the repository
    ```bash
    git clone https://github.com/sonamnimje/VoiceIQ-AI-Voice-Interview-Assistant.git
    cd VoiceIQ-AI-Voice-Interview-Assistant
    ```
 
-2. **Set up the backend**
+2. Set up the backend (Unix/macOS)
    ```bash
    cd backend
    python -m venv venv
-   source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+   Windows (PowerShell)
+   ```powershell
+   cd backend
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1
    pip install -r requirements.txt
    ```
 
-3. **Set up the frontend**
+3. Set up the frontend
    ```bash
    cd ../frontend
    npm install
    ```
 
-4. **Start the application**
-   - In one terminal (backend):
+4. Start locally
+   - Backend (dev, reload enabled)
      ```bash
      cd backend
-     uvicorn main:app --reload
+     uvicorn main:app --reload --host 0.0.0.0 --port 8000
      ```
-   - In another terminal (frontend):
+   - Frontend (typical CRA/React)
      ```bash
      cd frontend
      npm start
      ```
-
-5. Open your browser and navigate to `http://localhost:3000`
+   Open your browser at http://localhost:3000 (frontend) and ensure API requests point to http://localhost:8000 or use a proxy.
 
 ## 🛠️ Technology Stack
 
@@ -102,7 +102,7 @@ VoiceIQ is an advanced AI-powered interview preparation platform that provides r
 Detailed API documentation is available at `/docs` when running the backend server.
 
 ### Environment Variables
-Create a `.env` file in the backend directory with the following variables:
+Create a `.env` file in the backend directory (do NOT commit this file) with the following variables:
 ```
 OPENAI_API_KEY=your_openai_api_key
 DATABASE_URL=sqlite:///./voiceiq.db
