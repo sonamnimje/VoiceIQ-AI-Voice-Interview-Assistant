@@ -139,3 +139,22 @@ For support and questions:
 ---
 
 **Note**: This application requires an OpenAI API key for full functionality. Please ensure you have valid API credentials configured before use.
+
+## 🚢 Deployment
+
+This repository uses GitHub Actions to build the frontend and deploy to Vercel, and Render to host the Python backend.
+
+- Frontend: built from `frontend/` and deployed to Vercel. A working `vercel.json` file in the repo root configures the build and rewrites `/api/*` to the Render backend.
+- Backend: hosted on Render and expected at `https://voiceiq-backend.onrender.com` in production.
+
+Before enabling automatic deploys, make sure the following are configured:
+
+1. GitHub Actions secret `VERCEL_TOKEN` is set (create a Vercel Personal Token in your Vercel account and add it under repo Settings → Secrets)
+2. The `vercel.json` at repo root is not overridden by project settings in the Vercel dashboard (check Routes/Build settings)
+
+CI notes:
+
+- The GitHub Actions workflow at `.github/workflows/deploy-frontend-vercel.yml` builds the `frontend` folder and deploys via the Vercel CLI using `${{ secrets.VERCEL_TOKEN }}`.
+- The workflow sets build-time envs `REACT_APP_BACKEND_URL` and `REACT_APP_SOCKET_URL` to `https://voiceiq-backend.onrender.com`.
+
+If you prefer to let Vercel build the frontend directly, remove `frontend/build/` from git and let the workflow or Vercel perform the build. This repo previously contained built artifacts; we've moved to a CI-built approach to reduce merge conflicts and keep a single source of truth for builds.
