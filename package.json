@@ -1,0 +1,7 @@
+{
+  "name": "voiceiq-root",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ]
+}
