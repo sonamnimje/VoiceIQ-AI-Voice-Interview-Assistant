@@ -1,5 +1,4 @@
 # Primary dependency list maintained at repository root.
--r ../requirements.txt
 flask
 flask-socketio
 python-socketio
@@ -30,3 +29,4 @@ aiortc
 aiofiles
 # PDF Generation
 reportlab
+psycopg2-binary

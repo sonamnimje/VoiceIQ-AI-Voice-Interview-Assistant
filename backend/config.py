@@ -1,6 +1,8 @@
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
+
 
 def get_backend_dir():
     """Get the absolute path to the backend directory."""
@@ -11,29 +13,65 @@ def get_backend_dir():
     # Normal execution
     return Path(__file__).parent.absolute()
 
+
 # Get the absolute path to the backend directory
 BACKEND_DIR = get_backend_dir()
 
-# Database configuration
+# Default SQLite database (local file)
 DATABASE_FILENAME = "voiceiq.db"
-DATABASE_PATH = BACKEND_DIR / DATABASE_FILENAME
+DEFAULT_DATABASE_PATH = BACKEND_DIR / DATABASE_FILENAME
 
-# Ensure the directory exists
-DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-# Set the database path as an environment variable
-os.environ['DB_PATH'] = str(DATABASE_PATH)
+def parse_database_url(db_url: str):
+    """
+    Parse a DATABASE_URL (Postgres) and return components.
+    This function intentionally only parses; SQLAlchemy/psycopg clients
+    will consume full URL strings. We keep it lightweight here.
+    """
+    if not db_url:
+        return None
+    parsed = urlparse(db_url)
+    return {
+        'scheme': parsed.scheme,
+        'username': parsed.username,
+        'password': parsed.password,
+        'host': parsed.hostname,
+        'port': parsed.port,
+        'path': parsed.path.lstrip('/') if parsed.path else None,
+        'raw': db_url,
+    }
 
-# Log database information
-print("\n" + "="*50)
+
+# If a managed database is provided by the environment (Render/Heroku style), use it
+DATABASE_URL = os.environ.get('DATABASE_URL') or os.environ.get('DB_URL')
+DATABASE_CONFIG = parse_database_url(DATABASE_URL) if DATABASE_URL else None
+
+
+# If DATABASE_URL is not provided, fall back to local SQLite file
+if DATABASE_CONFIG:
+    # We expose DATABASE_PATH for backwards compatibility but keep the raw URL
+    DATABASE_PATH = DATABASE_CONFIG['raw']
+else:
+    # Use filesystem path for SQLite
+    DEFAULT_DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DATABASE_PATH = str(DEFAULT_DATABASE_PATH)
+
+
+# Friendly logging to help diagnose deployments
+print("\n" + "=" * 50)
 print("Application Configuration")
-print("="*50)
+print("=" * 50)
 print(f"Backend directory: {BACKEND_DIR}")
-print(f"Database path: {DATABASE_PATH}")
-print(f"Database exists: {DATABASE_PATH.exists()}")
-if not DATABASE_PATH.exists():
-    print("Database will be created on first use")
-print("="*50 + "\n")
+if DATABASE_CONFIG:
+    print("Database type: Postgres (via DATABASE_URL)")
+    print(f"Database URL: {DATABASE_CONFIG['raw']}")
+else:
+    print("Database type: SQLite (local file)")
+    print(f"Database path: {DATABASE_PATH}")
+    print(f"Database exists: {Path(DATABASE_PATH).exists()}")
+    if not Path(DATABASE_PATH).exists():
+        print("Database file will be created on first use")
+print("=" * 50 + "\n")
 
-# Export the database path for other modules to use
-__all__ = ['DATABASE_PATH', 'BACKEND_DIR']
+
+__all__ = ['DATABASE_PATH', 'BACKEND_DIR', 'DATABASE_URL', 'DATABASE_CONFIG']
