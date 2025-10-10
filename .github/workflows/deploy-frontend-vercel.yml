@@ -1,0 +1,37 @@
+name: Deploy Frontend to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install and build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+        env:
+          # Build-time envs for create-react-app. Set these here or in Vercel if you prefer.
+          REACT_APP_BACKEND_URL: https://voiceiq-backend.onrender.com
+          REACT_APP_SOCKET_URL: https://voiceiq-backend.onrender.com
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
+      - name: Deploy to Vercel
+        run: vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --confirm --cwd frontend
+
+      - name: Deployment notice
+        run: echo "If the workflow succeeded, the frontend was deployed to Vercel."
