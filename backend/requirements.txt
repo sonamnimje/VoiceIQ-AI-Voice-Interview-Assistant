@@ -8,7 +8,8 @@ python-dotenv
 pydub
 # Voice and Audio Processing
 speechrecognition
-pyaudio
+# pyaudio is intentionally omitted here; the top-level `requirements.txt`
+# includes a platform marker so pyaudio will not be installed on Linux builds.
 webrtcvad
 # AI and ML
 transformers
