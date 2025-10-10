@@ -1,5 +1,5 @@
-fastapi
-uvicorn
+# Primary dependency list maintained at repository root.
+-r ../requirements.txt
 flask
 flask-socketio
 python-socketio
@@ -10,14 +10,11 @@ pydub
 speechrecognition
 pyaudio
 webrtcvad
-soundfile
-scipy
 # AI and ML
 transformers
 torch
 torchaudio
 opencv-python
-mediapipe
 # File Processing
 python-multipart
 Pillow
@@ -27,7 +24,7 @@ python-docx
 numpy
 pandas
 scikit-learn
-# WebRTC / Async IO
+# WebRTC
 aiortc
 aiofiles
 # PDF Generation
