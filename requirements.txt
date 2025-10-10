@@ -17,7 +17,6 @@ transformers
 torch
 torchaudio
 opencv-python
-mediapipe
 # File Processing
 python-multipart
 Pillow
@@ -32,3 +31,5 @@ aiortc
 aiofiles
 # PDF Generation
 reportlab
+# NOTE: mediapipe removed because no wheel available for Python 3.13 on PyPI.
+# If you require mediapipe, use Python 3.11 or add a custom build/install step.
