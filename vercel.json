@@ -9,14 +9,14 @@
       "buildCommand": "cd frontend && npm run build"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://voiceiq-backend.onrender.com/api/$1"
+      "source": "/api/:path*",
+      "destination": "https://voiceiq-backend.onrender.com/api/:path*"
     },
     {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/:path*",
+      "destination": "/:path*"
     }
   ]
 }
