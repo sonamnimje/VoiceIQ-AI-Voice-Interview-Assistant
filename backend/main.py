@@ -616,8 +616,8 @@ async def reset_password(request: Request):
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         
         # Verify token
-    conn = get_connection()
-    cursor = conn.cursor()
+        conn = get_connection()
+        cursor = conn.cursor()
         
         cursor.execute("""
             SELECT id, expires_at, used FROM password_resets 
