@@ -4,7 +4,8 @@ services:
     env: python
     plan: free
     region: oregon
-    repo: <YOUR_GIT_REPO_URL> # optional when importing; replace if you want IaC linkage
+    repo: https://github.com/sonamnimje/VoiceIQ-AI-Voice-Interview-Assistant.git
+    rootDirectory: backend
     buildCommand: pip install -r requirements.txt 
     startCommand: uvicorn main:socket_app --host 0.0.0.0 --port $PORT
     envVars:
