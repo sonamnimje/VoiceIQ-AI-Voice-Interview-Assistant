@@ -670,8 +670,8 @@ async def verify_reset_token(request: Request):
         
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         
-    conn = get_connection()
-    cursor = conn.cursor()
+        conn = get_connection()
+        cursor = conn.cursor()
         
         cursor.execute("""
             SELECT expires_at, used FROM password_resets 
@@ -1606,9 +1606,9 @@ async def save_response(request: Request):
             confidence_score=confidence_score
         )
         
-    # Update session progress
-    conn = get_connection()
-    cursor = conn.cursor()
+        # Update session progress
+        conn = get_connection()
+        cursor = conn.cursor()
         cursor.execute("""
             UPDATE interview_sessions 
             SET current_question_index = ?, questions_answered = questions_answered + 1
@@ -1656,9 +1656,9 @@ async def save_transcript_api(request: Request):
             confidence_scores=confidence_scores
         )
         
-    # Update session with transcript info
-    conn = get_connection()
-    cursor = conn.cursor()
+        # Update session with transcript info
+        conn = get_connection()
+        cursor = conn.cursor()
         cursor.execute("""
             UPDATE interview_sessions 
             SET session_data = json_set(
