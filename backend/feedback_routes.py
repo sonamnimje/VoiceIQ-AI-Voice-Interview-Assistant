@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse, FileResponse
 import json
 import sqlite3
+from db_utils import get_connection
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import os
@@ -17,8 +18,13 @@ import io
 router = APIRouter(prefix="/api/feedback", tags=["feedback"])
 
 def get_db_connection():
-    conn = sqlite3.connect("database.db")
-    conn.row_factory = sqlite3.Row
+    conn = get_connection()
+    try:
+        # sqlite specific row factory
+        conn.row_factory = sqlite3.Row
+    except Exception:
+        # For psycopg2 cursors, row_factory doesn't apply; we'll use cursor.description when needed
+        pass
     return conn
 
 def get_user_email_from_request(request: Request) -> str:

@@ -4,14 +4,15 @@ Test Interview Data Storage
 This script verifies that all interview data is properly stored in the database.
 """
 
-import sqlite3
+from db_utils import get_connection
 import json
 
 DB_PATH = "database.db"
 
+
 def test_interview_data():
     """Test that all interview data is properly stored"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:

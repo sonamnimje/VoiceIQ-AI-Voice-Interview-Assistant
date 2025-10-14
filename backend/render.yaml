@@ -6,7 +6,7 @@ services:
     region: oregon
     repo: <YOUR_GIT_REPO_URL> # optional when importing; replace if you want IaC linkage
     buildCommand: pip install -r requirements.txt 
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn main:socket_app --host 0.0.0.0 --port $PORT
     envVars:
       # Add production secrets via the Render dashboard or replace sync:false entries below
       - key: OPENAI_API_KEY

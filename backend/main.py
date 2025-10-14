@@ -29,7 +29,7 @@ from db_utils import (
     # New enhanced functions
     start_interview_session, end_interview_session, add_interview_question, save_user_response,
     save_transcript_enhanced, get_interview_session, get_user_interview_history,
-    get_dashboard_stats_enhanced, save_interview_analytics, update_dashboard_stats_after_interview
+    get_dashboard_stats_enhanced, save_interview_analytics, update_dashboard_stats_after_interview, get_connection
 )
 
 # Import new advanced features
@@ -51,7 +51,7 @@ from db_utils import (
     change_user_password, get_user_language, update_user_language, clear_transcripts,
     start_interview_session, end_interview_session, add_interview_question, save_user_response,
     save_transcript_enhanced, get_interview_session, get_user_interview_history,
-    get_dashboard_stats_enhanced, save_interview_analytics, update_dashboard_stats_after_interview
+    get_dashboard_stats_enhanced, save_interview_analytics, update_dashboard_stats_after_interview, get_connection
 )
 
 def map_interview_mode(frontend_mode: str) -> str:
@@ -197,7 +197,7 @@ def signup(user: dict):
         raise HTTPException(status_code=400, detail="Email address is required")
     
     # Check if user already exists
-    conn = sqlite3.connect("database.db")
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         "SELECT * FROM users WHERE email=? OR gmail=? OR username=?",
@@ -243,7 +243,7 @@ async def login(request: Request):
     password = data.get("password")
     if not user_or_email or not password:
         return JSONResponse({"error": "Missing credentials"}, status_code=400)
-    conn = sqlite3.connect("database.db")
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         "SELECT * FROM users WHERE (username=? OR email=?) AND password=?",
@@ -261,7 +261,7 @@ async def login(request: Request):
 
 @app.get("/profile")
 async def get_profile(user_or_email: str):
-    conn = sqlite3.connect("database.db")
+    conn = get_connection()
     cursor = conn.cursor()
     # Try to fetch new fields, fallback if not present
     try:
@@ -448,7 +448,7 @@ async def api_get_all_transcripts():
     import sqlite3
     import json
     
-    conn = sqlite3.connect("database.db")
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -544,26 +544,26 @@ async def forgot_password(request: Request):
     
     try:
         # Check if user exists
-        conn = sqlite3.connect("database.db")
+        conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT id FROM users WHERE email = ? OR gmail = ?", (email, email))
         user = cursor.fetchone()
         conn.close()
-        
+
         if not user:
             return JSONResponse({"success": False, "error": "No account found with this email"}, status_code=404)
-        
+
         # Generate reset token
         import secrets
         import hashlib
         from datetime import datetime, timedelta
-        
+
         reset_token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
         expires_at = (datetime.now() + timedelta(hours=1)).isoformat()
-        
+
         # Store reset token in database
-        conn = sqlite3.connect("database.db")
+        conn = get_connection()
         cursor = conn.cursor()
         
         # Create password_resets table if it doesn't exist
@@ -616,8 +616,8 @@ async def reset_password(request: Request):
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         
         # Verify token
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
+    conn = get_connection()
+    cursor = conn.cursor()
         
         cursor.execute("""
             SELECT id, expires_at, used FROM password_resets 
@@ -670,8 +670,8 @@ async def verify_reset_token(request: Request):
         
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
+    conn = get_connection()
+    cursor = conn.cursor()
         
         cursor.execute("""
             SELECT expires_at, used FROM password_resets 
@@ -1152,7 +1152,7 @@ async def get_interview_questions(request: Request):
             })
         
         # Update session with total questions count
-        conn = sqlite3.connect("database.db")
+        conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE interview_sessions 
@@ -1553,7 +1553,7 @@ async def save_response(request: Request):
         
         # If question_id is not provided, try to find it by session_id and question_index
         if not question_id:
-            conn = sqlite3.connect("database.db")
+            conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT id FROM interview_questions 
@@ -1606,9 +1606,9 @@ async def save_response(request: Request):
             confidence_score=confidence_score
         )
         
-        # Update session progress
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
+    # Update session progress
+    conn = get_connection()
+    cursor = conn.cursor()
         cursor.execute("""
             UPDATE interview_sessions 
             SET current_question_index = ?, questions_answered = questions_answered + 1
@@ -1656,9 +1656,9 @@ async def save_transcript_api(request: Request):
             confidence_scores=confidence_scores
         )
         
-        # Update session with transcript info
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
+    # Update session with transcript info
+    conn = get_connection()
+    cursor = conn.cursor()
         cursor.execute("""
             UPDATE interview_sessions 
             SET session_data = json_set(
@@ -1713,7 +1713,7 @@ async def save_analytics(request: Request):
 async def get_profile_api(email: str):
     """Get user profile by email"""
     try:
-        conn = sqlite3.connect("database.db")
+        conn = get_connection()
         cursor = conn.cursor()
         
         # Try to fetch profile with basic fields first
@@ -1810,7 +1810,7 @@ async def update_profile(request: Request):
 async def export_preview(email: str):
     """Get data export preview with counts and sizes"""
     try:
-        conn = sqlite3.connect("database.db")
+        conn = get_connection()
         cursor = conn.cursor()
         
         # Get interview count
@@ -2111,7 +2111,7 @@ def socketio_simple_test():
 async def get_interview_session_data(session_id: str):
     """Get comprehensive interview session data including questions and responses"""
     try:
-        conn = sqlite3.connect("database.db")
+        conn = get_connection()
         cursor = conn.cursor()
         
         # Get session information

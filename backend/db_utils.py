@@ -6,48 +6,122 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List, Union, Tuple
 
 # Import database configuration
-from config import DATABASE_PATH as DB_PATH
+from config import DATABASE_PATH as DB_PATH, DATABASE_URL
+
+# Optional Postgres driver
+try:
+    import psycopg2
+except Exception:
+    psycopg2 = None
 
 # Print database info
 print(f"\n{'='*50}")
 print(f"Database Configuration")
 print(f"{'='*50}")
-print(f"Database path: {DB_PATH}")
-print(f"Database exists: {'Yes' if os.path.exists(DB_PATH) else 'No'}")
+print(f"Database path/URL: {DB_PATH}")
+try:
+    exists = os.path.exists(DB_PATH)
+except Exception:
+    exists = False
+print(f"Database exists: {'Yes' if exists else 'No'}")
+print(f"Using Postgres: {'Yes' if DATABASE_URL else 'No'}")
 print(f"{'='*50}\n")
 
-# Database connection parameters
+
 DB_TIMEOUT = 30.0  # seconds
 DB_ISOLATION_LEVEL = "IMMEDIATE"  # Use EXCLUSIVE for single writer, or IMMEDIATE for multiple readers/single writer
+
 
 class DatabaseError(Exception):
     """Custom exception for database-related errors."""
     pass
 
-def get_connection() -> sqlite3.Connection:
-    """Get a database connection with optimized settings."""
+
+class PGCursorWrapper:
+    """Wrap psycopg2 cursor to accept SQLite-style '?' placeholders by converting to '%s'."""
+    def __init__(self, cur):
+        self._cur = cur
+
+    def execute(self, sql, params=()):
+        if sql is None:
+            return self._cur.execute(sql, params)
+        sql_adapted = sql.replace('?', '%s')
+        return self._cur.execute(sql_adapted, params)
+
+    def executemany(self, sql, seq_of_params):
+        sql_adapted = sql.replace('?', '%s')
+        return self._cur.executemany(sql_adapted, seq_of_params)
+
+    def fetchone(self):
+        return self._cur.fetchone()
+
+    def fetchall(self):
+        return self._cur.fetchall()
+
+    def __getattr__(self, name):
+        return getattr(self._cur, name)
+
+
+class PGConnectionWrapper:
+    def __init__(self, conn):
+        self._conn = conn
+
+    def cursor(self):
+        return PGCursorWrapper(self._conn.cursor())
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        return self._conn.close()
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
+def get_connection():
+    """Return a DB connection. If DATABASE_URL is set and psycopg2 is available,
+    return a Postgres connection wrapped to accept '?' placeholders. Otherwise
+    return a configured sqlite3.Connection.
+    """
+    # If DATABASE_URL is set and psycopg2 is available, use Postgres
+    if DATABASE_URL and psycopg2:
+        try:
+            raw_conn = psycopg2.connect(DATABASE_URL)
+            return PGConnectionWrapper(raw_conn)
+        except Exception as e:
+            print(f"Postgres connection failed: {e}")
+            raise DatabaseError(f"Failed to connect to Postgres: {e}")
+
+    # Fallback to sqlite3
     try:
         # Create parent directory if it doesn't exist
         os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
-        
-        # Connect to the database with optimized settings
+
         conn = sqlite3.connect(
             database=DB_PATH,
             timeout=DB_TIMEOUT,
             isolation_level=DB_ISOLATION_LEVEL,
-            detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+            detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
         )
-        
-        # Optimize database settings
-        conn.execute("PRAGMA journal_mode = WAL")  # Better concurrency
-        conn.execute("PRAGMA synchronous = NORMAL")  # Good balance between safety and speed
-        conn.execute("PRAGMA foreign_keys = ON")  # Enforce foreign key constraints
-        conn.execute("PRAGMA temp_store = MEMORY")  # Store temp tables in memory
-        conn.execute("PRAGMA mmap_size = 30000000000")  # 30GB of memory for memory mapping
-        
+
+        # Optimize database settings for sqlite only
+        try:
+            conn.execute("PRAGMA journal_mode = WAL")
+            conn.execute("PRAGMA synchronous = NORMAL")
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.execute("PRAGMA temp_store = MEMORY")
+            conn.execute("PRAGMA mmap_size = 30000000000")
+        except Exception:
+            # PRAGMA may not be supported or may fail in restricted environments
+            pass
+
         return conn
     except sqlite3.Error as e:
-        print(f"Database connection error: {e}")
+        print(f"SQLite connection error: {e}")
         print(f"Database path: {os.path.abspath(DB_PATH)}")
         print(f"Current working directory: {os.getcwd()}")
         raise DatabaseError(f"Failed to connect to database: {e}")
@@ -72,7 +146,7 @@ def execute_query(query: str, params: tuple = (), fetch: bool = True) -> Union[L
             return cursor.rowcount
         
         return []
-    except sqlite3.Error as e:
+    except Exception as e:
         if conn:
             conn.rollback()
         print(f"Query failed: {e}")
@@ -86,6 +160,13 @@ def execute_query(query: str, params: tuple = (), fetch: bool = True) -> Union[L
 
 def init_db():
     """Initialize the database with required tables if they don't exist."""
+    # If a managed Postgres is configured, skip running the SQLite schema
+    # here — use `backend/init_render_db.py` which contains Postgres-compatible
+    # DDL. This avoids running SQLite-specific SQL (AUTOINCREMENT, PRAGMA, etc.)
+    if DATABASE_URL:
+        print("DATABASE_URL detected; skipping local sqlite init_db() — use init_render_db.py for Postgres schema")
+        return True
+
     try:
         # Users table
         execute_query(
@@ -151,23 +232,6 @@ def init_db():
             """,
             fetch=False,
         )
-
-        # Ensure resume_analysis column exists (for existing databases)
-        try:
-            conn_check = get_connection()
-            cur_check = conn_check.cursor()
-            cur_check.execute("PRAGMA table_info(interview_sessions)")
-            existing_columns = [row[1] for row in cur_check.fetchall()]
-            if "resume_analysis" not in existing_columns:
-                cur_check.execute("ALTER TABLE interview_sessions ADD COLUMN resume_analysis TEXT")
-                conn_check.commit()
-            conn_check.close()
-        except Exception:
-            # Column may already exist or database may be locked during startup
-            try:
-                conn_check.close()
-            except Exception:
-                pass
 
         # Interview questions table
         execute_query(
@@ -307,7 +371,7 @@ def init_db():
         return False
 def add_user(email, username, password, gmail=None):
     try:
-        conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
         cursor = conn.cursor()
         # Use email as gmail if gmail is not provided, since gmail field is NOT NULL
         gmail_value = gmail if gmail is not None and gmail.strip() else email
@@ -325,7 +389,7 @@ def add_user(email, username, password, gmail=None):
         conn.close()
 
 def save_dashboard_stats(name, email, interviews_completed, avg_feedback_score, last_interview_date):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     # First try the new schema
@@ -345,7 +409,7 @@ def save_dashboard_stats(name, email, interviews_completed, avg_feedback_score, 
     conn.close()
 
 def update_user_profile(email, name, username, phone, address, profile_pic=None):
-    conn = sqlite3.connect("database.db")
+    conn = get_connection()
     cursor = conn.cursor()
     if profile_pic is not None:
         cursor.execute("""
@@ -359,7 +423,7 @@ def update_user_profile(email, name, username, phone, address, profile_pic=None)
     conn.close()
 
 def get_dashboard_stats(email):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     # First try the new schema
@@ -396,7 +460,7 @@ def get_dashboard_stats(email):
     return None
 
 def save_feedback(email, session_id, overall_score, categories, suggestions, transcript, tts_feedback):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     # Try to insert with both old and new column names to handle the transition
@@ -416,7 +480,7 @@ def save_feedback(email, session_id, overall_score, categories, suggestions, tra
     conn.close()
 
 def get_feedback(email, session_id=None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     if session_id:
         cursor.execute("SELECT overall_score, categories, suggestions, transcript, tts_feedback FROM feedback WHERE user_email=? AND session_id=? ORDER BY id DESC LIMIT 1", (email, session_id))
@@ -436,7 +500,7 @@ def get_feedback(email, session_id=None):
 
 def get_feedback_enhanced(email, session_id=None):
     """Get enhanced feedback data including transcript"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     if session_id:
@@ -484,7 +548,7 @@ def get_feedback_enhanced(email, session_id=None):
     return None
 
 def save_transcript(email, session_id, data):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     # Try to insert with both old and new column names to handle the transition
@@ -504,7 +568,7 @@ def save_transcript(email, session_id, data):
     conn.close()
 
 def get_transcripts(email):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT session_id, transcript_data, created_at FROM transcripts WHERE user_email=? ORDER BY id DESC", (email,))
     rows = cursor.fetchall()
@@ -514,14 +578,14 @@ def get_transcripts(email):
     ]
 
 def clear_transcripts(email):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM transcripts WHERE user_email=?", (email,))
     conn.commit()
     conn.close()
 
 def change_user_password(email, current_password, new_password):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT password FROM users WHERE email=?", (email,))
     row = cursor.fetchone()
@@ -537,7 +601,7 @@ def change_user_password(email, current_password, new_password):
     return True
 
 def get_user_language(email):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT language FROM users WHERE email=?", (email,))
     row = cursor.fetchone()
@@ -547,7 +611,7 @@ def get_user_language(email):
     return None
 
 def update_user_language(email, language):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET language=? WHERE email=?", (language, email))
     conn.commit()
@@ -559,7 +623,7 @@ def start_interview_session(user_email, role, interview_mode="standard", resume_
     import json
     session_id = str(uuid.uuid4())
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:

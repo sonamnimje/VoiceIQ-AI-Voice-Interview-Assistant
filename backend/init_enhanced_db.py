@@ -7,12 +7,14 @@ This script creates all the necessary tables for the enhanced interview system.
 import sqlite3
 import json
 from datetime import datetime
+from db_utils import get_connection
 
 DB_PATH = "database.db"
 
+
 def init_enhanced_database():
     """Initialize the enhanced database with all tables"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     print("Initializing enhanced database...")

@@ -6,6 +6,7 @@ This script adds the missing 'transcript' and 'tts_feedback' columns to the feed
 
 import sqlite3
 import os
+from db_utils import get_connection
 
 DB_PATH = "database.db"
 
@@ -15,7 +16,7 @@ def fix_feedback_schema():
         print(f"❌ Database file {DB_PATH} not found!")
         return False
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:

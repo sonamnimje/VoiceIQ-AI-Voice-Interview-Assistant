@@ -1,4 +1,10 @@
 # Primary dependency list maintained at repository root.
+# FastAPI and ASGI server
+fastapi
+uvicorn[standard]
+# WebSocket support
+websockets
+# Original Flask dependencies (keeping for compatibility)
 flask
 flask-socketio
 python-socketio

@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Request, HTTPException, Body, File, UploadFile, Form, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import sqlite3
+from db_utils import init_db, add_user, save_dashboard_stats, get_dashboard_stats
+from db_utils import get_connection
 import json
 import logging
 from datetime import datetime
@@ -84,7 +85,7 @@ async def login(request: Request):
     password = data.get("password")
     if not user_or_email or not password:
         return JSONResponse({"error": "Missing credentials"}, status_code=400)
-    conn = sqlite3.connect("database.db")
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         "SELECT * FROM users WHERE (username=? OR email=?) AND password=?",

@@ -5,6 +5,7 @@ This script adds sample interview data to demonstrate the enhanced database func
 """
 
 import sqlite3
+from db_utils import init_db, get_connection
 import json
 import uuid
 from datetime import datetime, timedelta
@@ -14,7 +15,7 @@ DB_PATH = "database.db"
 
 def add_sample_interview_data():
     """Add comprehensive sample interview data to the database"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
