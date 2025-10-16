@@ -71,7 +71,7 @@ VoiceIQ is an advanced AI-powered interview preparation platform that provides r
    - Backend (dev, reload enabled)
      ```bash
      cd backend
-     uvicorn main:app --reload --host 0.0.0.0 --port 8000
+     uvicorn main:app --reload --host 127.0.0.0 --port 8000
      ```
    - Frontend (typical CRA/React)
      ```bash

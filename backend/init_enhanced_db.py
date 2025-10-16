@@ -237,7 +237,7 @@ def init_enhanced_database():
 
 def add_sample_data():
     """Add sample data for testing"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     print("\nAdding sample data...")

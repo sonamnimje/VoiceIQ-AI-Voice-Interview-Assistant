@@ -656,7 +656,7 @@ def start_interview_session(user_email, role, interview_mode="standard", resume_
 
 def end_interview_session(session_id):
     """End an interview session"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -687,7 +687,7 @@ def end_interview_session(session_id):
 
 def add_interview_question(session_id, question_text, question_type="text", category=None, difficulty="medium"):
     """Add a question to an interview session"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -713,7 +713,7 @@ def add_interview_question(session_id, question_text, question_type="text", cate
 
 def save_user_response(session_id, question_id, user_answer, audio_file_path=None, response_duration=None, confidence_score=None):
     """Save user response to a question"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -739,7 +739,7 @@ def save_user_response(session_id, question_id, user_answer, audio_file_path=Non
 
 def save_transcript_enhanced(session_id, user_email, transcript_data, raw_audio_path=None, processed_audio_path=None, word_timestamps=None, confidence_scores=None):
     """Save enhanced transcript with more detailed information"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -774,7 +774,7 @@ def save_transcript_enhanced(session_id, user_email, transcript_data, raw_audio_
 
 def save_feedback_enhanced(session_id, user_email, overall_score, technical_score=None, communication_score=None, problem_solving_score=None, confidence_score=None, categories=None, detailed_feedback=None, suggestions=None, strengths=None, areas_for_improvement=None, ai_generated_feedback=None, transcript=None, tts_feedback=None):
     """Save enhanced feedback with detailed scoring"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -835,7 +835,7 @@ def save_feedback_enhanced(session_id, user_email, overall_score, technical_scor
 
 def get_interview_session(session_id):
     """Get interview session details"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -865,7 +865,7 @@ def get_interview_session(session_id):
 
 def get_user_interview_history(user_email, limit=10):
     """Get user's interview history"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -897,7 +897,7 @@ def get_user_interview_history(user_email, limit=10):
 
 def get_dashboard_stats_enhanced(user_email):
     """Get enhanced dashboard statistics"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -1003,7 +1003,7 @@ def get_dashboard_stats_enhanced(user_email):
 
 def save_interview_analytics(session_id, user_email, question_analytics=None, voice_metrics=None, response_patterns=None):
     """Save interview analytics data"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -1030,7 +1030,7 @@ def save_interview_analytics(session_id, user_email, question_analytics=None, vo
 
 def update_dashboard_stats_after_interview(user_email, overall_score):
     """Update dashboard stats after an interview is completed"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
