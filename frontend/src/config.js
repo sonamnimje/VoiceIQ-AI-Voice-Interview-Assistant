@@ -1,4 +1,5 @@
 // Configuration file for API endpoints
+// Comment: Autodetect local vs production backend and socket URLs
 
 // Prefer explicit env vars if provided, otherwise auto-detect based on where the app is hosted.
 const DEFAULT_LOCAL_BACKEND = 'http://127.0.0.1:8000';
