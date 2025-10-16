@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Response
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+import re
 import asyncio
 import json
 import os
@@ -72,6 +74,15 @@ def map_interview_mode(frontend_mode: str) -> str:
 # Initialize FastAPI app
 app = FastAPI()
 
+
+class NormalizePathMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        path = request.scope.get("path", "")
+        normalized = re.sub(r"/+", "/", path) if path else path
+        if normalized != path:
+            request.scope["path"] = normalized
+        return await call_next(request)
+
 # Initialize Socket.IO
 sio = socketio.AsyncServer(
     async_mode='asgi',
@@ -80,6 +91,8 @@ sio = socketio.AsyncServer(
 
 # Wrap the FastAPI app with Socket.IO
 socket_app = socketio.ASGIApp(sio, app)
+
+app.add_middleware(NormalizePathMiddleware)
 
 # Allow CORS for local frontend dev
 app.add_middleware(
