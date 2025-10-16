@@ -29,4 +29,13 @@ const config = {
   SOCKET_URL: resolvedSocketUrl,
 };
 
+// Helper to resolve API base respecting Vercel proxy in production
+export const apiUrl = (path) => {
+  const isProd = !isLocalHost && !process.env.REACT_APP_BACKEND_URL;
+  if (isProd) {
+    return `/api${path}`; // Proxied by vercel.json rewrites to backend
+  }
+  return `${config.BACKEND_URL}${path}`;
+};
+
 export default config;

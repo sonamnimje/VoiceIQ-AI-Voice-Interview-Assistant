@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ModernPopup from '../components/ModernPopup';
 import { showToast } from '../components/Toast';
-import config from '../config';
+import config, { apiUrl } from '../config';
 import '../components/ModernUI.css';
 
 const SignupPage = () => {
@@ -59,7 +59,7 @@ const SignupPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${config.BACKEND_URL}/signup`, {
+      const response = await fetch(apiUrl('/signup'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
