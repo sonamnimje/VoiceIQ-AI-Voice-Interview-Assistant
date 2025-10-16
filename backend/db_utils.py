@@ -370,23 +370,28 @@ def init_db():
         traceback.print_exc()
         return False
 def add_user(email, username, password, gmail=None):
+    conn = None
     try:
-    conn = get_connection()
+        conn = get_connection()
         cursor = conn.cursor()
         # Use email as gmail if gmail is not provided, since gmail field is NOT NULL
         gmail_value = gmail if gmail is not None and gmail.strip() else email
         if not gmail_value or not gmail_value.strip():
             raise ValueError("Email address is required")
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO users (email, username, password, gmail)
             VALUES (?, ?, ?, ?)
-        """, (email, username, password, gmail_value))
+            """,
+            (email, username, password, gmail_value),
+        )
         conn.commit()
     except sqlite3.IntegrityError as e:
         print("IntegrityError:", e)
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 def save_dashboard_stats(name, email, interviews_completed, avg_feedback_score, last_interview_date):
     conn = get_connection()
