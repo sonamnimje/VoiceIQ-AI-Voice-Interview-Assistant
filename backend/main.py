@@ -124,6 +124,19 @@ print(f"Backend started!")
 print(f"Database file: {DATABASE_PATH}")
 print(f"Database exists: {os.path.exists(DATABASE_PATH)}")
 
+# Explicit global CORS preflight handler to ensure OPTIONS requests never 502
+@app.options("/{rest_of_path:path}")
+async def cors_preflight_handler(rest_of_path: str):
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*, Authorization, Content-Type",
+            "Access-Control-Max-Age": "86400",
+        },
+    )
+
 @app.get("/")
 def root():
     import os
