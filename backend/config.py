@@ -43,16 +43,14 @@ def parse_database_url(db_url: str):
 
 
 # If a managed database is provided by the environment (Render/Heroku style), use it
-_RAW_DATABASE_URL = os.environ.get('DATABASE_URL') or os.environ.get('DB_URL')
-_PARSED = parse_database_url(_RAW_DATABASE_URL) if _RAW_DATABASE_URL else None
+# Only accept Postgres URLs; ignore sqlite-style values accidentally set in DATABASE_URL
+_raw_db_url = os.environ.get('DATABASE_URL') or os.environ.get('DB_URL')
+if _raw_db_url and not _raw_db_url.lower().startswith(("postgres://", "postgresql://")):
+    # Treat non-postgres DATABASE_URL as unset to avoid psycopg2 errors
+    _raw_db_url = None
 
-# Only treat DATABASE_URL as Postgres if scheme starts with 'postgres'
-if _PARSED and _PARSED.get('scheme', '').startswith('postgres'):
-    DATABASE_URL = _PARSED['raw']
-    DATABASE_CONFIG = _PARSED
-else:
-    DATABASE_URL = None
-    DATABASE_CONFIG = None
+DATABASE_URL = _raw_db_url
+DATABASE_CONFIG = parse_database_url(DATABASE_URL) if DATABASE_URL else None
 
 
 # If DATABASE_URL is not provided, fall back to local SQLite file
