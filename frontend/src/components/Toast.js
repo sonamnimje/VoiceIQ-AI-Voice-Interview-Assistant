@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 let toastRoot = null;
 function ensureToastRoot() {
@@ -75,12 +75,15 @@ export function showToast(message, type = 'info') {
   ensureToastRoot();
   const toastDiv = document.createElement('div');
   toastRoot.appendChild(toastDiv);
+  const root = createRoot(toastDiv);
   function remove() {
-    if (toastDiv.parentNode) toastDiv.parentNode.removeChild(toastDiv);
+    try {
+      root.unmount();
+    } finally {
+      if (toastDiv.parentNode) toastDiv.parentNode.removeChild(toastDiv);
+    }
   }
-  ReactDOM.render(
-    <Toast message={message} type={type} onClose={remove} />, toastDiv
-  );
+  root.render(<Toast message={message} type={type} onClose={remove} />);
 }
 
 export default Toast;
