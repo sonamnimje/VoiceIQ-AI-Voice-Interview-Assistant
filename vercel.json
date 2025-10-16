@@ -9,11 +9,19 @@
   ],
   "rewrites": [
     {
+      "source": "/login",
+      "destination": "https://voiceiq-backend.onrender.com/login"
+    },
+    {
+      "source": "/signup",
+      "destination": "https://voiceiq-backend.onrender.com/signup"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://voiceiq-backend.onrender.com/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "\/(.*)",
       "destination": "/index.html"
     }
   ]
