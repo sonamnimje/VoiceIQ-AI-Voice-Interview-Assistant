@@ -13,8 +13,8 @@
       "destination": "https://voiceiq-backend.onrender.com/api/:path*"
     },
     {
-      "source": "/:path*",
-      "destination": "/:path*"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
