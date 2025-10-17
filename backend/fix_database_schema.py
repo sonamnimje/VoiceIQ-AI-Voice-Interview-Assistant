@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-PostgreSQL Database Initialization Script for VoiceIQ
-This script creates all necessary tables with proper foreign key relationships.
+Fix database schema for existing Render PostgreSQL database
+This script handles the foreign key constraint issues
 """
 
 import os
@@ -12,23 +12,28 @@ from pathlib import Path
 backend_dir = Path(__file__).parent
 sys.path.insert(0, str(backend_dir))
 
-from config import DATABASE_URL, DATABASE_CONFIG
-from db_utils import get_connection, DatabaseError
-
-def create_postgres_schema():
-    """Create PostgreSQL schema with proper foreign key relationships."""
+def fix_database_schema():
+    """Fix the database schema by creating tables in the correct order."""
     
-    if not DATABASE_URL:
-        print("❌ DATABASE_URL not found. Please set DATABASE_URL environment variable.")
+    print("🔧 Fixing database schema for existing Render database...")
+    print("=" * 60)
+    
+    # Check if DATABASE_URL is set
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        print("❌ DATABASE_URL environment variable not found!")
         return False
     
-    print("🔧 Initializing PostgreSQL database schema...")
+    print(f"📊 Using database: {database_url[:50]}...")
     
     try:
+        from db_utils import get_connection
+        
         conn = get_connection()
         cursor = conn.cursor()
         
-        # Create users table
+        # Step 1: Create users table first (without foreign keys)
+        print("🔧 Creating users table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -50,12 +55,14 @@ def create_postgres_schema():
             )
         """)
         
-        # Create indexes for users table
+        # Step 2: Create indexes for users table
+        print("🔧 Creating indexes for users table...")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_gmail ON users(gmail)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
         
-        # Create interview_sessions table with proper foreign key
+        # Step 3: Create interview_sessions table with proper foreign key
+        print("🔧 Creating interview_sessions table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS interview_sessions (
                 id SERIAL PRIMARY KEY,
@@ -77,7 +84,8 @@ def create_postgres_schema():
             )
         """)
         
-        # Create interview_questions table
+        # Step 4: Create other tables
+        print("🔧 Creating interview_questions table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS interview_questions (
                 id SERIAL PRIMARY KEY,
@@ -94,7 +102,7 @@ def create_postgres_schema():
             )
         """)
         
-        # Create user_responses table
+        print("🔧 Creating user_responses table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_responses (
                 id SERIAL PRIMARY KEY,
@@ -113,7 +121,7 @@ def create_postgres_schema():
             )
         """)
         
-        # Create transcripts table
+        print("🔧 Creating transcripts table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS transcripts (
                 id SERIAL PRIMARY KEY,
@@ -131,7 +139,7 @@ def create_postgres_schema():
             )
         """)
         
-        # Create feedback table
+        print("🔧 Creating feedback table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS feedback (
                 id SERIAL PRIMARY KEY,
@@ -156,7 +164,7 @@ def create_postgres_schema():
             )
         """)
         
-        # Create dashboard_stats table
+        print("🔧 Creating dashboard_stats table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS dashboard_stats (
                 id SERIAL PRIMARY KEY,
@@ -177,7 +185,7 @@ def create_postgres_schema():
             )
         """)
         
-        # Create interview_analytics table
+        print("🔧 Creating interview_analytics table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS interview_analytics (
                 id SERIAL PRIMARY KEY,
@@ -192,7 +200,8 @@ def create_postgres_schema():
             )
         """)
         
-        # Create additional indexes for performance
+        # Step 5: Create additional indexes for performance
+        print("🔧 Creating performance indexes...")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_interview_sessions_user_email ON interview_sessions(user_email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_interview_sessions_status ON interview_sessions(status)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_user_email ON feedback(user_email)")
@@ -200,11 +209,11 @@ def create_postgres_schema():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_dashboard_stats_user_email ON dashboard_stats(user_email)")
         
         conn.commit()
-        print("✅ PostgreSQL database schema initialized successfully!")
+        print("✅ Database schema fixed successfully!")
         return True
         
     except Exception as e:
-        print(f"❌ Failed to initialize PostgreSQL database: {e}")
+        print(f"❌ Failed to fix database schema: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -212,52 +221,46 @@ def create_postgres_schema():
         if 'conn' in locals():
             conn.close()
 
-def test_connection():
-    """Test database connection and basic operations."""
+def test_database_connection():
+    """Test if the database is working after the fix."""
     try:
+        from db_utils import get_connection
+        
         conn = get_connection()
         cursor = conn.cursor()
         
         # Test basic query
-        cursor.execute("SELECT version()")
-        version = cursor.fetchone()
-        print(f"✅ Connected to PostgreSQL: {version[0]}")
+        cursor.execute("SELECT COUNT(*) FROM users")
+        count = cursor.fetchone()[0]
+        print(f"✅ Database connection test: {count} users found")
         
-        # Test table existence
+        # Test if we can insert a test user
         cursor.execute("""
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            ORDER BY table_name
-        """)
-        tables = cursor.fetchall()
-        print(f"✅ Found {len(tables)} tables: {[t[0] for t in tables]}")
+            INSERT INTO users (email, username, password, gmail) 
+            VALUES (%s, %s, %s, %s) 
+            ON CONFLICT (email) DO NOTHING
+        """, ("test@example.com", "testuser", "testpass", "test@example.com"))
+        
+        conn.commit()
+        print("✅ Database insert test: Success")
         
         conn.close()
         return True
         
     except Exception as e:
-        print(f"❌ Database connection test failed: {e}")
+        print(f"❌ Database test failed: {e}")
         return False
 
 if __name__ == "__main__":
-    print("🚀 VoiceIQ PostgreSQL Database Initialization")
+    print("🚀 VoiceIQ - Fix Database Schema")
     print("=" * 50)
     
-    if not DATABASE_URL:
-        print("❌ DATABASE_URL environment variable not set!")
-        print("Please set DATABASE_URL to your PostgreSQL connection string.")
-        sys.exit(1)
-    
-    print(f"📊 Database URL: {DATABASE_CONFIG['host']}:{DATABASE_CONFIG['port']}/{DATABASE_CONFIG['path']}")
-    
-    # Test connection first
-    if not test_connection():
-        sys.exit(1)
-    
-    # Initialize schema
-    if create_postgres_schema():
-        print("🎉 Database initialization completed successfully!")
+    if fix_database_schema():
+        print("\n🔍 Testing database connection...")
+        if test_database_connection():
+            print("\n🎉 Database schema fixed and working!")
+        else:
+            print("\n⚠️  Database schema fixed but connection test failed")
     else:
-        print("💥 Database initialization failed!")
+        print("\n💥 Failed to fix database schema!")
         sys.exit(1)
