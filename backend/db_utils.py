@@ -865,7 +865,7 @@ def get_interview_session(session_id):
 
 def get_user_interview_history(user_email, limit=10):
     """Get user's interview history"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -897,14 +897,22 @@ def get_user_interview_history(user_email, limit=10):
 
 def get_dashboard_stats_enhanced(user_email):
     """Get enhanced dashboard statistics"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
         # First check if the dashboard_stats table exists
-        cursor.execute("""
-            SELECT name FROM sqlite_master WHERE type='table' AND name='dashboard_stats'
-        """)
+        if DATABASE_URL:
+            # PostgreSQL
+            cursor.execute("""
+                SELECT table_name FROM information_schema.tables 
+                WHERE table_schema = 'public' AND table_name = 'dashboard_stats'
+            """)
+        else:
+            # SQLite
+            cursor.execute("""
+                SELECT name FROM sqlite_master WHERE type='table' AND name='dashboard_stats'
+            """)
         table_exists = cursor.fetchone() is not None
         
         if not table_exists:
@@ -925,8 +933,16 @@ def get_dashboard_stats_enhanced(user_email):
             }
         
         # Check if user_email column exists
-        cursor.execute("PRAGMA table_info(dashboard_stats)")
-        columns = [column[1] for column in cursor.fetchall()]
+        if DATABASE_URL:
+            # PostgreSQL
+            cursor.execute("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'dashboard_stats' AND table_schema = 'public'
+            """)
+        else:
+            # SQLite
+            cursor.execute("PRAGMA table_info(dashboard_stats)")
+        columns = [column[0] for column in cursor.fetchall()]
         
         if 'user_email' not in columns:
             # Column doesn't exist, return default stats
