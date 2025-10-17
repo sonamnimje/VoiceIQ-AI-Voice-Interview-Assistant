@@ -39,6 +39,7 @@ from voice_processor import get_or_create_session as get_voice_session
 from resume_processor import ResumeProcessor
 from llm_feedback import feedback_engine
 from ai_interview_analyzer import ai_analyzer, AnalysisType
+from interview_modes import InterviewModeManager, InterviewMode
 
 # Remove feedback imports
 # from llm_feedback import feedback_engine
@@ -73,6 +74,12 @@ def map_interview_mode(frontend_mode: str) -> str:
 
 # Initialize FastAPI app
 app = FastAPI()
+
+# Initialize interview mode manager
+interview_mode_manager = InterviewModeManager()
+
+# Initialize resume processor
+resume_processor = ResumeProcessor()
 
 
 class NormalizePathMiddleware(BaseHTTPMiddleware):
@@ -451,6 +458,56 @@ async def api_get_dashboard_stats(email: str):
         "avgFeedbackScore": 0,
         "lastInterviewDate": "No interviews yet"
     }
+
+@app.get("/api/dashboard/stats/{email}")
+async def api_get_dashboard_stats_with_prefix(email: str):
+    """Get dashboard stats with /api/ prefix for frontend compatibility"""
+    try:
+        stats = get_dashboard_stats_enhanced(email)
+        if stats:
+            return {
+                "success": True,
+                "stats": stats
+            }
+        
+        # Return default stats if none exist
+        return {
+            "success": True,
+            "stats": {
+                "interviewsCompleted": 0,
+                "avgFeedbackScore": 0,
+                "lastInterviewDate": "No interviews yet",
+                "totalQuestions": 0,
+                "totalResponses": 0,
+                "averageResponseTime": 0,
+                "improvementTrend": "stable"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting dashboard stats: {str(e)}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/interview/history/{email}")
+async def api_get_interview_history_with_prefix(email: str, limit: int = 5):
+    """Get interview history with /api/ prefix for frontend compatibility"""
+    try:
+        history = get_user_interview_history(email, limit)
+        if history:
+            return {
+                "success": True,
+                "history": history,
+                "total": len(history)
+            }
+        
+        # Return empty history if none exist
+        return {
+            "success": True,
+            "history": [],
+            "total": 0
+        }
+    except Exception as e:
+        logger.error(f"Error getting interview history: {str(e)}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 
 
