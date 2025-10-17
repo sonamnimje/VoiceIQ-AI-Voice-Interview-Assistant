@@ -138,7 +138,19 @@ import os
 from config import DATABASE_PATH
 
 # Initialize database
-init_db()
+# If DATABASE_URL is set, use PostgreSQL initialization
+if os.environ.get('DATABASE_URL'):
+    print("PostgreSQL DATABASE_URL detected, using PostgreSQL database")
+    try:
+        from init_postgres_db import create_postgres_schema
+        create_postgres_schema()
+    except Exception as e:
+        print(f"PostgreSQL initialization failed: {e}")
+        print("Falling back to SQLite...")
+        init_db()
+else:
+    print("Using SQLite database")
+    init_db()
 
 print(f"Backend started!")
 print(f"Database file: {DATABASE_PATH}")
@@ -271,66 +283,81 @@ def signup(user: dict):
 # New login route
 @app.post("/login")
 async def login(request: Request):
-    data = await request.json()
+    try:
+        data = await request.json()
+    except Exception as e:
+        return JSONResponse({"error": "Invalid JSON in request body"}, status_code=400)
+    
     user_or_email = data.get("userOrEmail")
     password = data.get("password")
     if not user_or_email or not password:
         return JSONResponse({"error": "Missing credentials"}, status_code=400)
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT * FROM users WHERE (username=? OR email=?) AND password=?",
-        (user_or_email, user_or_email, password)
-    )
-    user = cursor.fetchone()
-    conn.close()
-    if user:
-        # Return user email so frontend can store it
-        # user[4] is the email column, but if it's None, use the login input
-        user_email = user[4] if user[4] else user_or_email
-        return {"message": "Login successful", "email": user_email}
-    else:
-        return JSONResponse({"error": "Invalid username/email or password"}, status_code=401)
-
-@app.get("/profile")
-async def get_profile(user_or_email: str):
-    conn = get_connection()
-    cursor = conn.cursor()
-    # Try to fetch new fields, fallback if not present
+    
     try:
+        conn = get_connection()
+        cursor = conn.cursor()
         cursor.execute(
-            "SELECT name, username, email, phone, address, profile_pic, role, created_at FROM users WHERE username=? OR email=?",
-            (user_or_email, user_or_email)
+            "SELECT * FROM users WHERE (username=? OR email=?) AND password=?",
+            (user_or_email, user_or_email, password)
         )
         user = cursor.fetchone()
+        conn.close()
+        
         if user:
-            return {
-                "name": user[0],
-                "username": user[1],
-                "email": user[2],
-                "phone": user[3],
-                "address": user[4],
-                "profile_pic": user[5],
-                "role": user[6] or "User"
-                # 'created_at' removed
-            }
-    except Exception:
-        # Fallback to old fields if new ones are missing
-        cursor.execute(
-            "SELECT name, username, email, phone, address FROM users WHERE username=? OR email=?",
-            (user_or_email, user_or_email)
-        )
-        user = cursor.fetchone()
-        if user:
-            return {
-                "name": user[0],
-                "username": user[1],
-                "email": user[2],
-                "phone": user[3],
-                "address": user[4]
-            }
-    conn.close()
-    return JSONResponse({"error": "User not found"}, status_code=404)
+            # Return user email so frontend can store it
+            # user[4] is the email column, but if it's None, use the login input
+            user_email = user[4] if user[4] else user_or_email
+            return {"message": "Login successful", "email": user_email}
+        else:
+            return JSONResponse({"error": "Invalid username/email or password"}, status_code=401)
+    except Exception as e:
+        return JSONResponse({"error": f"Database error: {str(e)}"}, status_code=500)
+
+@app.get("/api/profile")
+async def get_profile(email: str):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Try to fetch new fields, fallback if not present
+        try:
+            cursor.execute(
+                "SELECT name, username, email, phone, address, profile_pic, role, created_at FROM users WHERE email=?",
+                (email,)
+            )
+            user = cursor.fetchone()
+            if user:
+                return {
+                    "name": user[0],
+                    "username": user[1],
+                    "email": user[2],
+                    "phone": user[3],
+                    "address": user[4],
+                    "profile_pic": user[5],
+                    "role": user[6] or "User",
+                    "created_at": user[7]
+                }
+        except Exception:
+            # Fallback to old fields if new ones are missing
+            cursor.execute(
+                "SELECT name, username, email, phone, address FROM users WHERE email=?",
+                (email,)
+            )
+            user = cursor.fetchone()
+            if user:
+                return {
+                    "name": user[0],
+                    "username": user[1],
+                    "email": user[2],
+                    "phone": user[3],
+                    "address": user[4]
+                }
+        
+        conn.close()
+        return JSONResponse({"error": "User not found"}, status_code=404)
+        
+    except Exception as e:
+        return JSONResponse({"error": f"Database error: {str(e)}"}, status_code=500)
 
 # Simple question banks for each role
 ROLE_QUESTIONS = {
