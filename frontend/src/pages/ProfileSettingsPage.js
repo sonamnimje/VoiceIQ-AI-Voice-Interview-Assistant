@@ -4,7 +4,7 @@ import ModernPopup from '../components/ModernPopup';
 import PasswordChangeModal from '../components/PasswordChangeModal';
 import DataExportModal from '../components/DataExportModal';
 import { showToast } from '../components/Toast';
-import config from '../config';
+import config, { apiUrl } from '../config';
 import '../components/ModernUI.css';
 
 const ProfileSettingsPage = () => {
@@ -38,7 +38,7 @@ const ProfileSettingsPage = () => {
       const email = localStorage.getItem('user_email') || 'user@email.com';
       
       // Fetch user data from backend
-      const response = await fetch(`${config.BACKEND_URL}/api/profile?email=${encodeURIComponent(email)}`);
+      const response = await fetch(apiUrl(`/api/profile?email=${encodeURIComponent(email)}`));
       
       if (response.ok) {
         const data = await response.json();
@@ -87,7 +87,7 @@ const ProfileSettingsPage = () => {
 
   const saveProfile = async () => {
     try {
-      const response = await fetch(`${config.BACKEND_URL}/api/profile/update`, {
+      const response = await fetch(apiUrl('/api/profile/update'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
